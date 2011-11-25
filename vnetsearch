@@ -1,0 +1,108 @@
+#!/usr/bin/perl -w
+
+# Import Modules
+use Getopt::Long;
+use Pod::Usage;
+use Verilog::Netlist;
+use Verilog::Getopt;
+use strict;
+
+# Set global variables for 'use strict'
+use vars qw (
+
+);
+
+# Get command line options
+my $opt = new Verilog::Getopt();
+
+@ARGV = $opt->parameter(@ARGV);
+# print "Included extensions  :", $opt->libext(), "\n"; #debug
+# print "Included directories :", $opt->incdir(), "\n"; #debug
+# print "Included module directories :", $opt->module_dir(), "\n"; #debug
+# print "Included files       :", $opt->library(), "\n"; #debug
+
+if (! GetOptions (
+          "help"       => \&usage,
+          "<>"         => \&parameter,
+    )) {
+    die "%Error: Bad usage, try 'vnetsearch --help'\n";
+}
+
+vnetsearch();
+
+exit (0);
+
+######################################################################
+
+sub usage {
+    pod2usage(-verbose=>2, -exitval=> 2);
+    exit (1);
+}
+
+######################################################################
+
+sub vnetsearch {
+
+    # Create new netlist object
+    my $nl = new Verilog::Netlist (options => $opt,
+                                   keep_comments => 0,
+                                   use_vars => 0
+                                  );
+
+    # Read in all modules
+    $nl->link();
+
+    # 
+
+    # 
+
+}
+
+
+######################################################################
+######################################################################
+######################################################################
+
+__END__
+
+=pod
+
+=head1 NAME
+
+vnetsearch - Return the filename and line number of the root definition of a
+signal within the given verilog hierarchy
+
+=head1 SYNOPSIS
+
+  vnetsearch --help
+  vnetsearch [verilog_options] search_string
+
+=head1 DESCRIPTION
+
+vnetsearch uses the Verilog::Netlist perl module to build a netlist of the project.
+This netlist is then searched for the root definition of the input string argument.
+Upon discovery, the script will output the filename and line number containing this
+definition. If not found, the script will exit.
+
+=head1 DISTRIBUTION
+
+Verilog-Perl is part of the L<http://www.veripool.org/> free Verilog EDA
+software tool suite. The latest version is availabe from CPAN and from
+L<http://www.veripool.org/verilog-perl>.
+
+Copyright 2011 by Chuck McClish. This package is free software; you
+can redistribute it and/or modify it under the terms of either the GNU
+Lesser General Public License Version 3 or the Perl Artistic License Version 2.0.
+
+=head1 AUTHOR
+
+Chuck McClish <charles.mcclish@microchip.com>
+
+=head1 SEE ALSO
+
+L<Verilog-Perl>,
+L<Verilog::Getopt>,
+L<Verilog::Netlist>
+
+=cut
+######################################################################
