@@ -8,9 +8,12 @@ use Verilog::Getopt;
 use strict;
 
 # Set global variables for 'use strict'
-use vars qw (
+use vars qw ( $Debug
 
 );
+
+# Set global variables
+$Debug = 0;
 
 # Get command line options
 my $opt = new Verilog::Getopt();
@@ -23,6 +26,7 @@ my $opt = new Verilog::Getopt();
 
 if (! GetOptions (
           "help"       => \&usage,
+          "debug"      => \&debug,
           "<>"         => \&parameter,
     )) {
     die "%Error: Bad usage, try 'vnetsearch --help'\n";
@@ -39,6 +43,10 @@ sub usage {
     exit (1);
 }
 
+sub debug {
+    $Debug = 1;
+}
+
 ######################################################################
 
 sub vnetsearch {
@@ -50,11 +58,17 @@ sub vnetsearch {
                                   );
 
     # Read in all modules
+    $nl->read_libraries();
     $nl->link();
 
-    # 
+    # Create an array with all modules
+    my @allModules = $nl->modules;
 
-    # 
+    # Search each module for the requested signal
+    print "Loaded Modules:\n\n" if $Debug;
+    foreach my $module (@allModules) {
+        print $module->name, "\n" if $Debug; #Print all loaded modules
+    }
 
 }
 
