@@ -1,5 +1,7 @@
 #!/usr/bin/perl -w
 
+# Copyright information contained at the end of the file
+
 # Import Modules
 use Getopt::Long;
 use Pod::Usage;
@@ -8,7 +10,7 @@ use Verilog::Getopt;
 use strict;
 
 # Set global variables for 'use strict'
-use vars qw ( $Debug
+use vars qw ( $Debug $searchString
 
 );
 
@@ -27,9 +29,14 @@ my $opt = new Verilog::Getopt();
 if (! GetOptions (
           "help"       => \&usage,
           "debug"      => \&debug,
+          "s=s"   => \$searchString,
           "<>"         => \&parameter,
     )) {
     die "%Error: Bad usage, try 'vnetsearch --help'\n";
+}
+
+if ($searchString) {
+    print "Searched string : $searchString\n" if $Debug;
 }
 
 vnetsearch();
@@ -54,20 +61,40 @@ sub vnetsearch {
     # Create new netlist object
     my $nl = new Verilog::Netlist (options => $opt,
                                    keep_comments => 0,
-                                   use_vars => 0
+                                   use_vars => 1,
+                                   implicit_wires_ok => 1,
+                                   include_open_nonfatal => 1
                                   );
 
     # Read in all modules
     $nl->read_libraries();
-    $nl->link();
 
-    # Create an array with all modules
-    my @allModules = $nl->modules;
+    # Read the files in the project and create full netlist tree
+    print "\nRead in the following project files:\n\n" if $Debug;
+    for my $fileHash ($nl->files) {
+        my $fileName = $fileHash->name;
+        print "$fileName\n" if $Debug;
+        $nl->read_file ( filename => $fileName );
+    }
+
+    $nl->link();
+    #$nl->lint();  #This checks for lint warnings on pins. slows it down, may implement later
+    $nl->exit_if_error();
+    
+    #print $nl->verilog_text if $Debug; #Print out the verilog code representing the netlist. Could be useful in a major debug
 
     # Search each module for the requested signal
-    print "Loaded Modules:\n\n" if $Debug;
-    foreach my $module (@allModules) {
+    print "\nLoaded Modules with containing nets:\n\n" if $Debug;
+    for my $module ($nl->modules) {
         print $module->name, "\n" if $Debug; #Print all loaded modules
+        my $foundNet = $module->find_net ($searchString);
+        if ($foundNet) {
+            print "Found net: ", $foundNet->name, "\n";
+        }
+        for my $netHash ($module->nets) {
+            print "  ", $netHash->name, "\n" if $Debug; #Print all nets
+        }
+        
     }
 
 }
@@ -89,7 +116,7 @@ signal within the given verilog hierarchy
 =head1 SYNOPSIS
 
   vnetsearch --help
-  vnetsearch [verilog_options] search_string
+  vnetsearch [verilog_options] [--debug] [--help] [-s search_string]
 
 =head1 DESCRIPTION
 
