@@ -7,6 +7,7 @@ use Getopt::Long;
 use Pod::Usage;
 use Verilog::Netlist;
 use Verilog::Getopt;
+use Verilog::Preproc;
 use strict;
 
 # Set global variables for 'use strict'
@@ -80,7 +81,11 @@ sub vnetsearch {
     $nl->link();
     #$nl->lint();  #This checks for lint warnings on pins. slows it down, may implement later
     $nl->exit_if_error();
-    
+
+    my $pp = Verilog::Preproc->new(keep_comments => 0,
+                                   options => $opt
+                                  );
+
     #print $nl->verilog_text if $Debug; #Print out the verilog code representing the netlist. Could be useful in a major debug
 
     # Search each module for the requested signal
@@ -89,7 +94,15 @@ sub vnetsearch {
         print $module->name, "\n" if $Debug; #Print all loaded modules
         my $foundNet = $module->find_net ($searchString);
         if ($foundNet) {
-            print "Found net: ", $foundNet->name, "\n";
+            my $netName = $foundNet->name;
+            $pp->open(filename => $nl->resolve_filename($module->name));
+            while (defined ( my $line = $pp->getline())) {
+                # This regular expression is the guts of the parsing routine. This will expand greatly
+                if ( $line =~ /^\s*assign\s+$netName\s+/ ) {
+                    print "Found definition of: $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
+                    print $nl->resolve_filename($module->name), " ", $pp->lineno(), "\n";
+                }
+            }
         }
         for my $netHash ($module->nets) {
             print "  ", $netHash->name, "\n" if $Debug; #Print all nets
