@@ -12,8 +12,8 @@ use IO::Socket;
 use strict;
 
 # Set global variables for 'use strict'
-use vars qw ( $Debug $searchString $socketFile $socketDir $socket $opt
-
+use vars qw ( $Debug $socketFile $socketDir $socket $opt
+              $nl $pp $com
 );
 
 # Set global variables
@@ -23,6 +23,9 @@ $socketDir = $ENV{'VERPARSE_SOCKET'};
     die "The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
 
 $socketFile = "$socketDir/socket";
+
+# Prevent an INT signal (CTRL-C) from killing the program without removing the socket file
+$SIG{INT} = \&interrupt_handler;
 
 # Setup communication port
 createSocket();
@@ -39,23 +42,35 @@ $opt = new Verilog::Getopt();
 if (! GetOptions (
           "help"    => \&usage,
           "debug"   => \&debug,
-          "s=s"     => \$searchString,
           "<>"      => \&parameter,
     )) {
     die "%Error: Bad usage, try 'vnetsearch --help'\n";
 }
 
-print "Using socket $socketFile\n\n";
+print "Using UNIX domain socket $socketFile\n\n";
 
-if ($searchString) {
-    print "Searched string : $searchString\n" if $Debug;
+# Build the Verilog::Netlist object
+buildNetlist();
+
+# Start the server
+#$com = $socket->accept();
+
+# Main program loop
+# Wait for and process requests from the client
+while (1) {
+    
 }
 
-verparse();
+######################################################################
 
-while (1) {}
+# Interrupt handler
 
-exit (0);
+sub interrupt_handler {
+    print "\nClosing verparse_server socket in $socketFile\n\nExitting...\n";
+    $socket->close();
+    unlink $socketFile;
+    exit(1);
+}
 
 ######################################################################
 
@@ -76,15 +91,19 @@ sub debug {
 
 ######################################################################
 
-# Setup port
+# Setup UNIX domain socket
 
 sub createSocket {
     
     # Check and see if the UNIX domain socket file exists, if not, create one
-    unless (-s $socketFile) {
-        $socket = IO::Socket::UNIX->new(LocalAddr => $socketFile,
-                                        Type      => SOCK_DGRAM
-                                       );
+    #unlink $socketFile;
+    unless (-S $socketFile) {
+        $socket = IO::Socket::UNIX->new(Local     => $socketFile,
+                                        Type      => SOCK_DGRAM,
+                                        Listen    => 32
+                                       ) or die $!;
+
+        $socket->autoflush(1);
     } else {
         print "Server already running...\n";
         exit (1);
@@ -93,15 +112,17 @@ sub createSocket {
 
 ######################################################################
 
-sub verparse {
+# Build the Verilog::Netlist object and setup the preprocessor
+
+sub buildNetlist {
 
     # Create new netlist object
-    my $nl = new Verilog::Netlist (options => $opt,
-                                   keep_comments => 0,
-                                   use_vars => 1,
-                                   implicit_wires_ok => 1,
-                                   include_open_nonfatal => 1
-                                  );
+    $nl = new Verilog::Netlist (options => $opt,
+                                keep_comments => 0,
+                                use_vars => 1,
+                                implicit_wires_ok => 1,
+                                include_open_nonfatal => 1
+                               );
 
     # Read in all modules
     $nl->read_libraries();
@@ -118,36 +139,67 @@ sub verparse {
     #$nl->lint();  #This checks for lint warnings on pins. slows it down, may implement later
     $nl->exit_if_error();
 
-    my $pp = Verilog::Preproc->new(keep_comments => 0,
+    $pp = Verilog::Preproc->new(keep_comments => 0,
                                    options => $opt
                                   );
 
     #print $nl->verilog_text if $Debug; #Print out the verilog code representing the netlist. Could be useful in a major debug
 
-    # Search each module for the requested signal
-    print "\nLoaded Modules with containing nets:\n\n" if $Debug;
-    for my $module ($nl->modules) {
-        print $module->name, "\n" if $Debug; #Print all loaded modules
-        my $foundNet = $module->find_net ($searchString);
-        if ($foundNet) {
-            my $netName = $foundNet->name;
-            $pp->open(filename => $nl->resolve_filename($module->name));
-            while (defined ( my $line = $pp->getline())) {
-                # This regular expression is the guts of the parsing routine. This will expand greatly
-                if ( $line =~ /^\s*assign\s+$netName\s+/ ) {
-                    print "Found definition of: $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
-                    print $nl->resolve_filename($module->name), " ", $pp->lineno(), "\n";
-                }
-            }
-        }
-        for my $netHash ($module->nets) {
-            print "  ", $netHash->name, "\n" if $Debug; #Print all nets
-        }
-        
-    }
+#    # Search each module for the requested signal
+#    print "\nLoaded Modules with containing nets:\n\n" if $Debug;
+#    for my $module ($nl->modules) {
+#        print $module->name, "\n" if $Debug; #Print all loaded modules
+#        my $foundNet = $module->find_net ($searchString);
+#        if ($foundNet) {
+#            my $netName = $foundNet->name;
+#            $pp->open(filename => $nl->resolve_filename($module->name));
+#            while (defined ( my $line = $pp->getline())) {
+#                # This regular expression is the guts of the parsing routine. This will expand greatly
+#                if ( $line =~ /^\s*assign\s+$netName\s+/ ) {
+#                    print "Found definition of: $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
+#                    print $nl->resolve_filename($module->name), " ", $pp->lineno(), "\n";
+#                }
+#            }
+#        }
+#        for my $netHash ($module->nets) {
+#            print "  ", $netHash->name, "\n" if $Debug; #Print all nets
+#        }
+#        
+#    }
 
 }
 
+######################################################################
+
+# Find the root definition of a net or register
+
+sub findSignal {
+
+}
+
+######################################################################
+
+# Find the root definition of a module
+
+sub findModule {
+
+}
+
+######################################################################
+
+# Find the value of a parameter or define
+
+sub paramValue {
+
+}
+
+######################################################################
+
+# Trace the loads of the given signal
+
+sub traceLoads {
+
+}
 
 ######################################################################
 ######################################################################
@@ -159,20 +211,19 @@ __END__
 
 =head1 NAME
 
-verparse_server - Return the filename and line number of the root definition of a
-signal within the given verilog hierarchy
+verparse_server - Setup a server to be used in connection with the
+client program (see L<verparse>)
 
 =head1 SYNOPSIS
 
   verparse_server --help
-  verparse_server [verilog_options] [--debug] [--help] [-s search_string]
+  verparse_server [verilog_options] [--debug]
 
 =head1 DESCRIPTION
 
-vnetsearch uses the Verilog::Netlist perl module to build a netlist of the project.
-This netlist is then searched for the root definition of the input string argument.
-Upon discovery, the script will output the filename and line number containing this
-definition. If not found, the script will exit.
+verparse_server uses the Verilog::Netlist perl module to build a netlist of the project.
+It also sets up a UNIX domain socket in order to process search requests from the client
+program L<verparse>
 
 =head1 DISTRIBUTION
 
