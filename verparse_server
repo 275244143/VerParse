@@ -8,18 +8,27 @@ use Pod::Usage;
 use Verilog::Netlist;
 use Verilog::Getopt;
 use Verilog::Preproc;
+use IO::Socket;
 use strict;
 
 # Set global variables for 'use strict'
-use vars qw ( $Debug $searchString
+use vars qw ( $Debug $searchString $socketFile $socketDir $socket $opt
 
 );
 
 # Set global variables
 $Debug = 0;
+$socketDir = $ENV{'VERPARSE_SOCKET'};
+    # See if the $sockedDir environment variable has been set, if not, exit
+    die "The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
+
+$socketFile = "$socketDir/socket";
+
+# Setup communication port
+createSocket();
 
 # Get command line options
-my $opt = new Verilog::Getopt();
+$opt = new Verilog::Getopt();
 
 @ARGV = $opt->parameter(@ARGV);
 # print "Included extensions  :", $opt->libext(), "\n"; #debug
@@ -28,28 +37,38 @@ my $opt = new Verilog::Getopt();
 # print "Included files       :", $opt->library(), "\n"; #debug
 
 if (! GetOptions (
-          "help"       => \&usage,
-          "debug"      => \&debug,
-          "s=s"   => \$searchString,
-          "<>"         => \&parameter,
+          "help"    => \&usage,
+          "debug"   => \&debug,
+          "s=s"     => \$searchString,
+          "<>"      => \&parameter,
     )) {
     die "%Error: Bad usage, try 'vnetsearch --help'\n";
 }
+
+print "Using socket $socketFile\n\n";
 
 if ($searchString) {
     print "Searched string : $searchString\n" if $Debug;
 }
 
-vnetsearch();
+verparse();
+
+while (1) {}
 
 exit (0);
 
 ######################################################################
 
+# Display POD
+
 sub usage {
     pod2usage(-verbose=>2, -exitval=> 2);
     exit (1);
 }
+
+######################################################################
+
+# Enable debug output
 
 sub debug {
     $Debug = 1;
@@ -57,7 +76,24 @@ sub debug {
 
 ######################################################################
 
-sub vnetsearch {
+# Setup port
+
+sub createSocket {
+    
+    # Check and see if the UNIX domain socket file exists, if not, create one
+    unless (-s $socketFile) {
+        $socket = IO::Socket::UNIX->new(LocalAddr => $socketFile,
+                                        Type      => SOCK_DGRAM
+                                       );
+    } else {
+        print "Server already running...\n";
+        exit (1);
+    }
+}
+
+######################################################################
+
+sub verparse {
 
     # Create new netlist object
     my $nl = new Verilog::Netlist (options => $opt,
@@ -123,13 +159,13 @@ __END__
 
 =head1 NAME
 
-vnetsearch - Return the filename and line number of the root definition of a
+verparse_server - Return the filename and line number of the root definition of a
 signal within the given verilog hierarchy
 
 =head1 SYNOPSIS
 
-  vnetsearch --help
-  vnetsearch [verilog_options] [--debug] [--help] [-s search_string]
+  verparse_server --help
+  verparse_server [verilog_options] [--debug] [--help] [-s search_string]
 
 =head1 DESCRIPTION
 
@@ -156,7 +192,8 @@ Chuck McClish <charles.mcclish@microchip.com>
 
 L<Verilog-Perl>,
 L<Verilog::Getopt>,
-L<Verilog::Netlist>
+L<Verilog::Netlist>,
+L<IO::Socket>
 
 =cut
 ######################################################################
