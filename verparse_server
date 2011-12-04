@@ -79,41 +79,44 @@ while (1) {
         next;
     }
 
-    # Pass client data on to parsing subroutines
+    # Pass client data on to parsing subroutines and return result
+    my $foundFile = '';
+    my $foundLine = '';
 
     # Search for parameter or define value
     if ($recDataHash{type} eq "parameter") {
         if(exists $recDataHash{file}) {
-            $sendData = paramValue($recDataHash{search}, $recDataHash{file});
+            ($foundFile, $foundLine) = paramValue($recDataHash{search}, $recDataHash{file});
         } else {
-            $sendData = paramValue($recDataHash{search});
+            ($foundFile, $foundLine) = paramValue($recDataHash{search});
         }
 
     # Search for the declaration of a net or register
     } elsif ($recDataHash{type} eq "signal") {
         if(exists $recDataHash{file}) {
-            $sendData = findSignal($recDataHash{search}, $recDataHash{file});
+            ($foundFile, $foundLine) = findSignal($recDataHash{search}, $recDataHash{file});
         } else {
-            $sendData = findSignal($recDataHash{search});
+            ($foundFile, $foundLine) = findSignal($recDataHash{search});
         }
 
     # Search for a module declaration
     } elsif ($recDataHash{type} eq "module") {
         if(exists $recDataHash{file}) {
-            $sendData = findModule($recDataHash{search}, $recDataHash{file});
+            ($foundFile, $foundLine) = findModule($recDataHash{search}, $recDataHash{file});
         } else {
-            $sendData = findModule($recDataHash{search});
+            ($foundFile, $foundLine) = findModule($recDataHash{search});
         }
     # Trace the load of a net or register
     } elsif ($recDataHash{type} eq "trace") {
         if(exists $recDataHash{file}) {
-            $sendData = traceLoads($recDataHash{search}, $recDataHash{file});
+            ($foundFile, $foundLine) = traceLoads($recDataHash{search}, $recDataHash{file});
         } else {
-            $sendData = traceLoads($recDataHash{search});
+            ($foundFile, $foundLine) = traceLoads($recDataHash{search});
         }
     }
 
     # Send data to client
+    $sendData = "$foundFile $foundLine";
     print "Server returned data: $sendData\n" if $Debug;
     print $com "$sendData\n";
 
@@ -203,28 +206,6 @@ sub buildNetlist {
 
     #print $nl->verilog_text if $Debug; #Print out the verilog code representing the netlist. Could be useful in a major debug
 
-#    # Search each module for the requested signal
-#    print "\nLoaded Modules with containing nets:\n\n" if $Debug;
-#    for my $module ($nl->modules) {
-#        print $module->name, "\n" if $Debug; #Print all loaded modules
-#        my $foundNet = $module->find_net ($searchString);
-#        if ($foundNet) {
-#            my $netName = $foundNet->name;
-#            $pp->open(filename => $nl->resolve_filename($module->name));
-#            while (defined ( my $line = $pp->getline())) {
-#                # This regular expression is the guts of the parsing routine. This will expand greatly
-#                if ( $line =~ /^\s*assign\s+$netName\s+/ ) {
-#                    print "Found definition of: $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
-#                    print $nl->resolve_filename($module->name), " ", $pp->lineno(), "\n";
-#                }
-#            }
-#        }
-#        for my $netHash ($module->nets) {
-#            print "  ", $netHash->name, "\n" if $Debug; #Print all nets
-#        }
-#        
-#    }
-
 }
 
 ######################################################################
@@ -232,7 +213,52 @@ sub buildNetlist {
 # Find the root definition of a net or register
 
 sub findSignal {
+    # Pull in arguments
+    my $search   = $_[0];
+    my $filename = $_[1];
 
+    # Setup parsing regular expression. Searches for the following lines in a file:
+    #
+    # assign netName = ******
+    # assign netName[1:0] = ******
+    # assign {******netName[1:0]******} =
+    #   regName <= ******
+    #   regName = ******
+    #   regName[1:0] <= ******
+    #   regName[1:0] = ******
+    #   {******regname******} = ******
+    #   if (******) regname <= ******
+    # 
+    # Regular expression: /^\s*((assign\s+$netName[\s\[\=\{])|(.*\([\w\s:]+\).*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s*$netName[\s\[\}\,]))/
+
+    # Search each module for the requested signal
+    print "Net search command issued:\n" if $Debug;
+
+    #if ($filename) {
+
+    #} else {
+        #print "\nLoaded Modules with containing nets:\n\n" if $Debug;
+        for my $module ($nl->modules) {
+            #print $module->name, "\n" if $Debug; #Print all loaded modules
+            my $foundNet = $module->find_net ($search);
+            if ($foundNet) {
+                my $netName = $foundNet->name;
+                $pp->open(filename => $nl->resolve_filename($module->name));
+                while (defined ( my $line = $pp->getline())) {
+                    if ( $line =~ /^\s*((assign\s+$netName[\s\[\=\{])|(.*\([\w\s:]+\).*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s*$netName[\s\[\}\,]))/ ) {
+                        print "Found definition of $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
+                        my $returnFile = $nl->resolve_filename($module->name);
+                        my $returnLine = $pp->lineno();
+                        return ($returnFile, $returnLine);
+                    }
+                }
+            }
+        }
+    #}
+
+    # If subroutine gets to this point, the net was not found
+    print "Searched signal not found\n" if $Debug;
+    return ("notFound", "0");
 }
 
 ######################################################################
