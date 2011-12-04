@@ -39,9 +39,12 @@ if (! GetOptions (
 # Send input data to the server
 if ($refreshServer) {
     $sentData = "refresh=1";
+} elsif ($currentFile) {
+    $sentData = "type=$requestType;search=$searchString;file=$currentFile";
 } else {
-    $sentData = "file=$currentFile;type=$requestType;search=$searchString";
+    $sentData = "type=$requestType;search=$searchString";
 }
+
 print "Data sent to verparse_server: $sentData\n" if $Debug;
 print $socket "$sentData\n";
 

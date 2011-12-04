@@ -13,7 +13,7 @@ use strict;
 
 # Set global variables for 'use strict'
 use vars qw ( $Debug $socketFile $socketDir $socket $opt
-              $nl $pp $com $recData %recDataHash
+              $nl $pp $com $recData %recDataHash $sendData
 );
 
 # Set global variables
@@ -74,7 +74,48 @@ while (1) {
         buildNetlist();
         print "Netlist object refreshed on verparse_server\n" if $Debug;
         print $com "Netlist object refreshed on verparse_server\n";
+        # Clear the data hash and return to top of while loop
+        %recDataHash = ();
+        next;
     }
+
+    # Pass client data on to parsing subroutines
+
+    # Search for parameter or define value
+    if ($recDataHash{type} eq "parameter") {
+        if(exists $recDataHash{file}) {
+            $sendData = paramValue($recDataHash{search}, $recDataHash{file});
+        } else {
+            $sendData = paramValue($recDataHash{search});
+        }
+
+    # Search for the declaration of a net or register
+    } elsif ($recDataHash{type} eq "signal") {
+        if(exists $recDataHash{file}) {
+            $sendData = findSignal($recDataHash{search}, $recDataHash{file});
+        } else {
+            $sendData = findSignal($recDataHash{search});
+        }
+
+    # Search for a module declaration
+    } elsif ($recDataHash{type} eq "module") {
+        if(exists $recDataHash{file}) {
+            $sendData = findModule($recDataHash{search}, $recDataHash{file});
+        } else {
+            $sendData = findModule($recDataHash{search});
+        }
+    # Trace the load of a net or register
+    } elsif ($recDataHash{type} eq "trace") {
+        if(exists $recDataHash{file}) {
+            $sendData = traceLoads($recDataHash{search}, $recDataHash{file});
+        } else {
+            $sendData = traceLoads($recDataHash{search});
+        }
+    }
+
+    # Send data to client
+    print "Server returned data: $sendData\n" if $Debug;
+    print $com "$sendData\n";
 
     # Clear hash to process next client request
     %recDataHash = ();
