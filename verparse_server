@@ -246,7 +246,7 @@ sub findSignal {
 
     # If subroutine gets to this point, the net was not found
     print "Searched signal not found\n" if $Debug;
-    return ("notFound", "0");
+    return;
 }
 
 ######################################################################
@@ -274,15 +274,27 @@ sub findModule {
 
     # If subroutine gets to this point, the net was not found
     print "Module not found\n" if $Debug;
-    return ("notFound", "0");
+    return;
 
 }
 
 ######################################################################
 
-# Find the value of a define
+# Find and return the value of a define
 
 sub defineValue {
+    # Pull in arguments
+    my $search   = $_[0];
+
+    print "Display define value command issued:\n" if $Debug;
+
+    #Parse the Verilog::Netlist object for the define value
+    my $foundDefine = $nl->defvalue_nowarn($search);
+
+    return $foundDefine if $foundDefine;
+
+    # If subroutine gets to this point, the define was not found
+    return;
 
 }
 
