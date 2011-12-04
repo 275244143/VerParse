@@ -13,7 +13,7 @@ use strict;
 
 # Set global variables for 'use strict'
 use vars qw ( $Debug $socketFile $socketDir $socket $opt
-              $nl $pp $com
+              $nl $pp $com $recData
 );
 
 # Set global variables
@@ -52,13 +52,18 @@ print "Using UNIX domain socket $socketFile\n\n";
 # Build the Verilog::Netlist object
 buildNetlist();
 
-# Start the server
-#$com = $socket->accept();
-
 # Main program loop
 # Wait for and process requests from the client
 while (1) {
-    
+
+    # Accept incoming connections
+    $com = $socket->accept() or die("Can't accept connection: $!\n");
+
+    # Wait until a newline character is received to process the data
+    chomp ( $recData = <$com> );
+    print qq{Client has sent: "$recData"\n} if $Debug;
+    print $com "Wahoo!!\n";
+
 }
 
 ######################################################################
@@ -96,14 +101,12 @@ sub debug {
 sub createSocket {
     
     # Check and see if the UNIX domain socket file exists, if not, create one
-    #unlink $socketFile;
     unless (-S $socketFile) {
         $socket = IO::Socket::UNIX->new(Local     => $socketFile,
-                                        Type      => SOCK_DGRAM,
-                                        Listen    => 32
-                                       ) or die $!;
-
-        $socket->autoflush(1);
+                                        Type      => SOCK_STREAM,
+                                        Listen    => SOMAXCONN
+                                       ) or die ( "Can't create server socket: $!\n");
+        
     } else {
         print "Server already running...\n";
         exit (1);
