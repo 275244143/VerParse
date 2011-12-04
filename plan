@@ -3,9 +3,7 @@ Action Plan for vnetsearch utility
 - break up into multiple programs
   * Server
     * Pulls in data from -f files and builds the netlist object for parsing
-    * will have a --status option that will allow running of this command and see what
-      servers are using what ports
-    * Parses and returns the following data:
+    * Parses and returns the following data on client request:
       * file and line number of the definition of a net or reg
       * file and line number of the definition of a module definition
       * value of parameter of define in the minibuffer
@@ -13,16 +11,10 @@ Action Plan for vnetsearch utility
     * Receives commands from the client and returns the result to it
     * should run as a daemon
       * likely executed from within an end users compile script or similar
-    * dynamically allocate ports from 55000
-      * Check to see if lowest port is in use by sending a request
-      * If in use, increment and try again
-      * If no valid response, setup server on that port
-      * If port in use is not 55000, rerun allocation routine to see if a lower
-        port is available
+    * Uses UNIX domain sockets for communication
+    * Rebuilds the netlist object when a "refresh" request from the client is received
   * Client
-    * Sends a command sequence to the server and returns received data to STDIN
-      or to the editor interface
-    * Can also poll the servers on the local machine and see what is running
+    * Sends a command sequence to the server and returns received data to STDOUT
   * Editor Interface
     * Frontend for the client for an editor that allows keyboard shortcuts to
       issue client commands
