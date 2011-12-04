@@ -80,43 +80,26 @@ while (1) {
     }
 
     # Pass client data on to parsing subroutines and return result
-    my $foundFile = '';
-    my $foundLine = '';
+    my @returnData = ();
+    my @inputData = ();
 
-    # Search for parameter or define value
-    if ($recDataHash{type} eq "parameter") {
-        if(exists $recDataHash{file}) {
-            ($foundFile, $foundLine) = paramValue($recDataHash{search}, $recDataHash{file});
-        } else {
-            ($foundFile, $foundLine) = paramValue($recDataHash{search});
-        }
+    @inputData = ("$recDataHash{search}");
+    @inputData = push(@inputData, "$recDataHash{file}") if exists $recDataHash{file};
+
+    # Search for define value
+    @returnData = defineValue(@inputData) if $recDataHash{type} eq "define";
 
     # Search for the declaration of a net or register
-    } elsif ($recDataHash{type} eq "signal") {
-        if(exists $recDataHash{file}) {
-            ($foundFile, $foundLine) = findSignal($recDataHash{search}, $recDataHash{file});
-        } else {
-            ($foundFile, $foundLine) = findSignal($recDataHash{search});
-        }
+    @returnData =  findSignal(@inputData) if $recDataHash{type} eq "signal";
 
     # Search for a module declaration
-    } elsif ($recDataHash{type} eq "module") {
-        if(exists $recDataHash{file}) {
-            ($foundFile, $foundLine) = findModule($recDataHash{search}, $recDataHash{file});
-        } else {
-            ($foundFile, $foundLine) = findModule($recDataHash{search});
-        }
+    @returnData =  findModule(@inputData) if $recDataHash{type} eq "module";
+
     # Trace the load of a net or register
-    } elsif ($recDataHash{type} eq "trace") {
-        if(exists $recDataHash{file}) {
-            ($foundFile, $foundLine) = traceLoads($recDataHash{search}, $recDataHash{file});
-        } else {
-            ($foundFile, $foundLine) = traceLoads($recDataHash{search});
-        }
-    }
+    @returnData =  traceLoads(@inputData) if $recDataHash{type} eq "trace";
 
     # Send data to client
-    $sendData = "$foundFile $foundLine";
+    $sendData = join(' ', @returnData);
     print "Server returned data: $sendData\n" if $Debug;
     print $com "$sendData\n";
 
@@ -132,6 +115,7 @@ sub interrupt_handler {
     print "\nClosing verparse_server socket in $socketFile\n\nExitting...\n";
     $socket->close();
     unlink $socketFile;
+    $nl->delete;
     exit(1);
 }
 
@@ -176,7 +160,9 @@ sub createSocket {
 # Build the Verilog::Netlist object and setup the preprocessor
 
 sub buildNetlist {
-
+    # Delete an existing netlist object before a refresh
+    $nl->delete if $nl;
+        
     # Create new netlist object
     $nl = new Verilog::Netlist (options => $opt,
                                 keep_comments => 0,
@@ -234,9 +220,11 @@ sub findSignal {
     # Search each module for the requested signal
     print "Net search command issued:\n" if $Debug;
 
-    #if ($filename) {
-
-    #} else {
+    # If a filename is given, search the given filename first, then parse connected modules for the signal declaration
+    if ($filename) {
+    
+    # If no filename is given, go through every module and search for the signal declaration (can be very slow depending on project size)
+    } else {
         #print "\nLoaded Modules with containing nets:\n\n" if $Debug;
         for my $module ($nl->modules) {
             #print $module->name, "\n" if $Debug; #Print all loaded modules
@@ -254,7 +242,7 @@ sub findSignal {
                 }
             }
         }
-    #}
+    }
 
     # If subroutine gets to this point, the net was not found
     print "Searched signal not found\n" if $Debug;
@@ -292,9 +280,9 @@ sub findModule {
 
 ######################################################################
 
-# Find the value of a parameter or define
+# Find the value of a define
 
-sub paramValue {
+sub defineValue {
 
 }
 
