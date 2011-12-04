@@ -186,8 +186,10 @@ sub buildNetlist {
     #$nl->lint();  #This checks for lint warnings on pins. slows it down, may implement later
     $nl->exit_if_error();
 
-    $pp = Verilog::Preproc->new(keep_comments => 0,
-                                   options => $opt
+    $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
+                                keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
+                                include_open_nonfatal => 1, # Ignore any include files that do not exist
+                                options             => $opt # Pass all verilog options in order to resolve filenames and defines
                                   );
 
     #print $nl->verilog_text if $Debug; #Print out the verilog code representing the netlist. Could be useful in a major debug
@@ -215,13 +217,14 @@ sub findSignal {
     #   {******regname******} = ******
     #   if (******) regname <= ******
     # 
-    # Regular expression: /^\s*((assign\s+$netName[\s\[\=\{])|(.*\([\w\s:]+\).*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s*$netName[\s\[\}\,]))/
+    # Regular expression: /^\s?((assign\s$netName[\s\[\=\{])|(.*\([\w\s:]+\)[^<=]*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s?$netName[\s\[\}\,]))/
 
     # Search each module for the requested signal
     print "Net search command issued:\n" if $Debug;
 
     # If a filename is given, search the given filename first, then parse connected modules for the signal declaration
     if ($filename) {
+        # From the filename given, determine the current module
     
     # If no filename is given, go through every module and search for the signal declaration (can be very slow depending on project size)
     } else {
@@ -233,7 +236,7 @@ sub findSignal {
                 my $netName = $foundNet->name;
                 $pp->open(filename => $nl->resolve_filename($module->name));
                 while (defined ( my $line = $pp->getline())) {
-                    if ( $line =~ /^\s*((assign\s+$netName[\s\[\=\{])|(.*\([\w\s:]+\).*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s*$netName[\s\[\}\,]))/ ) {
+                    if ( $line =~ /^\s?((assign\s$netName[\s\[\=\{])|(.*\([\w\s:]+\)[^<=]*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s?$netName[\s\[\}\,]))/ ) {
                         print "Found definition of $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
                         my $returnFile = $nl->resolve_filename($module->name);
                         my $returnLine = $pp->lineno();
@@ -265,7 +268,7 @@ sub findModule {
 
     $pp->open(filename => $returnFile);
     while (defined ( my $line = $pp->getline())) {
-        if ( $line =~ /^\s*module\s+$search[\s\(]/ ) {
+        if ( $line =~ /^\s?module\s$search[\s\(]/ ) {
             my $returnLine = $pp->lineno();
             print "Found declaration of $search in file $returnFile on line $returnLine\n" if $Debug;
             return ($returnFile, $returnLine);
