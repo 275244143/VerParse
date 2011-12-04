@@ -13,11 +13,12 @@ use strict;
 
 # Set global variables for 'use strict'
 use vars qw ( $Debug $socketFile $socketDir $socket $opt
-              $nl $pp $com $recData
+              $nl $pp $com $recData %recDataHash
 );
 
 # Set global variables
 $Debug = 0;
+%recDataHash = ();
 $socketDir = $ENV{'VERPARSE_SOCKET'};
     # See if the $sockedDir environment variable has been set, if not, exit
     die "The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
@@ -47,7 +48,7 @@ if (! GetOptions (
     die "%Error: Bad usage, try 'vnetsearch --help'\n";
 }
 
-print "Using UNIX domain socket $socketFile\n\n";
+print "Using UNIX domain socket $socketFile\n";
 
 # Build the Verilog::Netlist object
 buildNetlist();
@@ -61,9 +62,22 @@ while (1) {
 
     # Wait until a newline character is received to process the data
     chomp ( $recData = <$com> );
-    print qq{Client has sent: "$recData"\n} if $Debug;
-    print $com "Wahoo!!\n";
 
+    # Decipher $recData and issue commands
+    print qq{\n******************************\nClient has sent command: "$recData"\n} if $Debug;
+
+    # Split data into a hash to find commands easily
+    %recDataHash = split(/[=;]/, $recData);
+
+    # Reload netlist if refresh requested
+    if (exists $recDataHash{refresh}) {
+        buildNetlist();
+        print "Netlist object refreshed on verparse_server\n" if $Debug;
+        print $com "Netlist object refreshed on verparse_server\n";
+    }
+
+    # Clear hash to process next client request
+    %recDataHash = ();
 }
 
 ######################################################################

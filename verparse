@@ -38,9 +38,9 @@ if (! GetOptions (
 
 # Send input data to the server
 if ($refreshServer) {
-    $sentData = "-refresh_verparse_server";
+    $sentData = "refresh=1";
 } else {
-    $sentData = "-f $currentFile -t $requestType -s $searchString";
+    $sentData = "file=$currentFile;type=$requestType;search=$searchString";
 }
 print "Data sent to verparse_server: $sentData\n" if $Debug;
 print $socket "$sentData\n";
@@ -80,7 +80,7 @@ sub createSocket {
                                        ) or die ( "Can't connect to server: $!\n");
         
     } else {
-        print "No verparse_server running...\n";
+        print "No verparse_server running...\n\nExitting...\n";
         exit (1);
     }
 }
