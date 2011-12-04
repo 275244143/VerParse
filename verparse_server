@@ -266,6 +266,27 @@ sub findSignal {
 # Find the root definition of a module
 
 sub findModule {
+    # Pull in arguments
+    my $search   = $_[0];
+
+    print "Module declaration search command issued:\n" if $Debug;
+
+    #Parse the Verilog::Netlist object for the file and line number of the module declaration
+    my $foundModule = $nl->find_module($search);
+    my $returnFile  = $nl->resolve_filename($foundModule->name);
+
+    $pp->open(filename => $returnFile);
+    while (defined ( my $line = $pp->getline())) {
+        if ( $line =~ /^\s*module\s+$search[\s\(]/ ) {
+            my $returnLine = $pp->lineno();
+            print "Found declaration of $search in file $returnFile on line $returnLine\n" if $Debug;
+            return ($returnFile, $returnLine);
+        }
+    }
+
+    # If subroutine gets to this point, the net was not found
+    print "Module not found\n" if $Debug;
+    return ("notFound", "0");
 
 }
 
