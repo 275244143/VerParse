@@ -69,6 +69,12 @@ while (1) {
     # Split data into a hash to find commands easily
     %recDataHash = split(/[=;]/, $recData);
 
+    # Send INT signal if kill requested
+    if (exists $recDataHash{kill}) {
+        print $com "Server killed, INT signal received from client\n";
+        interrupt_handler();
+    }
+
     # Reload netlist if refresh requested
     if (exists $recDataHash{refresh}) {
         buildNetlist();
@@ -242,12 +248,28 @@ sub findSignal {
             # Iterate through connected modules until the signal declaration is found
             while (1) {
                 # Check to see if the net is a port to the module
-                $port = $module->find_port($search);
+                if ($module->find_port($search)) {
+                    $port = $module->find_port($search);
+                } else {
+                    $port = '';
+                }
 
                 #print "Port name: ", $port->name, "\n" if $Debug;
 
                 # If the port does not exist or is an output the declaration must be in the local module or leaf cell
                 if ($port eq '') {
+#                    # Check leaf cells and see if this signal is an output
+#                    for my $leafCell ($module->cells) {
+#                        for my $leafPin ($leafCell->pins) {
+#                            my $leafNet = $leafPin->net;
+#                            if ($leafNet->name eq $search) {
+#                                $module = $leafCell->submod;
+#                                $search = $leafPin->name;
+#                                next;
+#                            }
+#                        }
+#                    }
+                    
                     my @returnData;
                     @returnData = parseModuleForNet($search, $module);
                     if ($returnData[0]) {
@@ -255,6 +277,18 @@ sub findSignal {
                     }
                 } else {
                     if ($port->direction eq "out") {
+#                        # Check leaf cells and see if this signal is an output
+#                        for my $leafCell ($module->cells) {
+#                            for my $leafPin ($leafCell->pins) {
+#                                my $leafNet = $leafPin->net;
+#                                if ($leafNet->name eq $search) {
+#                                    $module = $leafCell->submod;
+#                                    $search = $leafPin->name;
+#                                    next;
+#                                }
+#                            }
+#                        }
+
                         my @returnData;
                         @returnData = parseModuleForNet($search, $module);
                         if ($returnData[0]) {
@@ -269,11 +303,11 @@ sub findSignal {
                         my $inc = 0;
                         my $cell = '';
                         for my $upModule ($nl->modules) {
-                            
-                            $cell = $upModule->find_cell($module->name);
-                            if ($cell) {
-                                $moduleArray[$inc] = $upModule;
-                                $cellArray[$inc]   = $cell;
+                            for my $upCell ($upModule->cells) {
+                                if ($upCell->submodname eq $module->name) {
+                                    $moduleArray[$inc] = $upModule;
+                                    $cellArray[$inc]   = $upCell;
+                                }
                             }
                         }
                         
@@ -307,18 +341,20 @@ sub findSignal {
                 }
             }
         }
-    }
+    } else {
 
-    # If no filename is given or the module name check failed above, go through every module and search for the signal declaration (can be very slow depending on project size)
-    #print "\nLoaded Modules with containing nets:\n\n" if $Debug;
-    for my $module ($nl->modules) {
-        #print $module->name, "\n" if $Debug; #Print all loaded modules
-        my $foundNet = $module->find_net ($search);
-        if ($foundNet) {
-            my @returnData;
-            @returnData = parseModuleForNet($search, $module);
-            if ($returnData[0]) {
-                return @returnData;
+        # If no filename is given, go through every module and search for the signal declaration (can be very slow depending on project size
+        # and does not detect signal renames across module boundaries)
+        #print "\nLoaded Modules with containing nets:\n\n" if $Debug;
+        for my $module ($nl->modules) {
+            #print $module->name, "\n" if $Debug; #Print all loaded modules
+            my $foundNet = $module->find_net ($search);
+            if ($foundNet) {
+                my @returnData;
+                @returnData = parseModuleForNet($search, $module);
+                if ($returnData[0]) {
+                    return @returnData;
+                }
             }
         }
     }
