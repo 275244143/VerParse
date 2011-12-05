@@ -243,6 +243,7 @@ sub findSignal {
 
         if ($moduleName) {
             my $module = $nl->find_module($moduleName);
+            my $lastModule = $module->name;
             my $port = '';
 
             # Iterate through connected modules until the signal declaration is found
@@ -258,17 +259,20 @@ sub findSignal {
 
                 # If the port does not exist or is an output the declaration must be in the local module or leaf cell
                 if ($port eq '') {
-#                    # Check leaf cells and see if this signal is an output
-#                    for my $leafCell ($module->cells) {
-#                        for my $leafPin ($leafCell->pins) {
-#                            my $leafNet = $leafPin->net;
-#                            if ($leafNet->name eq $search) {
-#                                $module = $leafCell->submod;
-#                                $search = $leafPin->name;
-#                                next;
-#                            }
-#                        }
-#                    }
+
+                    # Check leaf cells and see if this signal is an output
+                    for my $leafCell ($module->cells) {
+                        unless ( $leafCell->submodname eq $lastModule ) {
+                            for my $leafPin ($leafCell->pins) {
+                                my $leafNet = $leafPin->net;
+                                if ($leafNet->name eq $search) {
+                                    $module = $leafCell->submod;
+                                    $search = $leafPin->name;
+                                    next;
+                                }
+                            }
+                        }
+                    }
                     
                     my @returnData;
                     @returnData = parseModuleForNet($search, $module);
@@ -277,17 +281,20 @@ sub findSignal {
                     }
                 } else {
                     if ($port->direction eq "out") {
-#                        # Check leaf cells and see if this signal is an output
-#                        for my $leafCell ($module->cells) {
-#                            for my $leafPin ($leafCell->pins) {
-#                                my $leafNet = $leafPin->net;
-#                                if ($leafNet->name eq $search) {
-#                                    $module = $leafCell->submod;
-#                                    $search = $leafPin->name;
-#                                    next;
-#                                }
-#                            }
-#                        }
+
+                        # Check leaf cells and see if this signal is an output
+                        for my $leafCell ($module->cells) {
+                            unless ( $leafCell->submodname eq $lastModule ) {
+                                for my $leafPin ($leafCell->pins) {
+                                    my $leafNet = $leafPin->net;
+                                    if ($leafNet->name eq $search) {
+                                        $module = $leafCell->submod;
+                                        $search = $leafPin->name;
+                                        next;
+                                    }
+                                }
+                            }
+                        }
 
                         my @returnData;
                         @returnData = parseModuleForNet($search, $module);
@@ -324,7 +331,8 @@ sub findSignal {
                             my $moduleNet = $pin->net;
                             $search = $moduleNet->name;
 
-                            # Get the name of the module this is in
+                            # Get the name of the module this is in and set the previous module
+                            $lastModule = $module->name;
                             $module = $cell->module;
                             print "Up-Module Name: ", $module->name, "\n" if $Debug;
 
