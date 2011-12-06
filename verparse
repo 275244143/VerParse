@@ -21,9 +21,6 @@ $socketDir = $ENV{'VERPARSE_SOCKET'};
 
 $socketFile = "$socketDir/socket";
 
-# Setup up communication port
-createSocket();
-
 # Get command line options
 if (! GetOptions (
           "help"     => \&usage,
@@ -36,6 +33,9 @@ if (! GetOptions (
     )) {
     die "%Error: Bad usage, try 'vnetsearch --help'\n";
 }
+
+# Setup up communication port
+createSocket();
 
 # Send input data to the server
 if ($killServer) {
