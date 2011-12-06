@@ -501,6 +501,61 @@ verparse_server uses the Verilog::Netlist perl module to build a netlist of the 
 It also sets up a UNIX domain socket in order to process search requests from the client
 program L<verparse>
 
+=head1 VERILOG ARGUMENTS
+
+The following arguments are compatible with GCC, VCS and most Verilog
+programs.
+
+=over 4
+
+=item +define+I<var>+I<value>
+=item -DI<var>=I<value>
+
+Defines the given preprocessor symbol.
+
+=item -f I<file>
+
+Read the specified file, and act as if all text inside it was
+specified as command line parameters.
+
+=item +incdir+I<dir>
+=item -II<dir>
+
+Add the directory to the list of directories that should be searched
+for include directories or libraries.
+
+=item +libext+I<ext>+I<ext>...
+
+Specify the extensions that should be used for finding modules.  If for
+example module I<x> is referenced, look in I<x>.I<ext>.
+
+=item -sv
+
+Specifies SystemVerilog language features should be enabled; equivalent to
+"--language 1800-2005".  This option is selected by default, it exists for
+compatibility with other simulators.
+
+=item -y I<dir>
+
+Add the directory to the list of directories that should be searched
+for include directories or libraries.
+
+=back
+
+=head1 VERPARSE_SERVER ARGUMENTS
+
+=over 4
+
+=item --help
+
+Displays this message and exits
+
+=item --debug
+
+Displays useful debug information about server processes
+
+=back
+
 =head1 DISTRIBUTION
 
 Verilog-Perl is part of the L<http://www.veripool.org/> free Verilog EDA

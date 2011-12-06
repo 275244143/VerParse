@@ -107,13 +107,59 @@ verparse - Sends parsing requests to the running verparse_server
 
   verparse --help
   verparse --refresh
-  verparse [--debug] -f file -t request_type -s search_string
+  verparse --kill
+  verparse [--debug] [-t request_type] [-s search_string] [-f file]
 
 =head1 DESCRIPTION
 
 verparse sends search requests to a running verparse_server and
 receives data regarding which verilog file and line number from the
 search result.
+
+=head1 VERPARSE ARGUMENTS
+
+=over 4
+
+=item --help
+
+Displays this message and exits
+
+=item --debug
+
+Displays useful debug information regarding sent and received data
+
+=item --refresh
+
+Forces the verparse_server to rebuild the Verilog::Netlist object. This should be
+performed whenever a compile takes place or when verilog files are added/removed.
+
+=item --kill
+
+Sends and INT signal to the verparse_server, causing it to gracefully shutdown
+
+=item -t I<request_type>
+
+Determines which command should be sent to the server. Valid options are:
+    * signal   --> performs a signal search and returns the file and line number
+                   of the searched signal's declaration. There are 2 routines
+                   available, depending on whether or not the -f option is passed
+    * module   --> performs a module search and returns the file and line number
+                   of the searched module's declaration
+    * define   --> returns the value of the searched define's value
+    * trace    --> performs a trace on the given signal. Returns all the file and
+                   line number data regarding where the searched signal connects
+
+=item -s I<search_string>
+
+Determines the search string passed to the server. Only exact matches are valid.
+Regular expressions are not supported at this time.
+
+=item -f I<file>
+
+Defines the starting file for a signal search or trace. This allows for a
+faster and more accurate search routine to be utilized.
+
+=back
 
 =head1 DISTRIBUTION
 
