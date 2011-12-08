@@ -178,6 +178,7 @@ sub buildNetlist {
                                 keep_comments => 0,
                                 use_vars => 1,
                                 implicit_wires_ok => 1,
+                                link_read_nonfatal => 1, # Comment this out when all project *.f files are formatted correctly
                                 include_open_nonfatal => 1
                                );
 
@@ -247,8 +248,8 @@ sub findSignal {
             my $port = '';
 
             # Iterate through connected modules until the signal declaration is found
+            my $foundSignal = 0;
             while (1) {
-                my $foundSignal = 0;
                 # Check to see if the net is a port to the module
                 if ($module->find_port($search)) {
                     $port = $module->find_port($search);
@@ -260,22 +261,34 @@ sub findSignal {
 
                 # If the port does not exist or is an output the declaration must be in the local module or leaf cell
                 if ($port eq '') {
+                    $foundSignal = 0;
                     print "%%%%% Found no input or output declarations %%%%%\n" if $Debug;
 
                     # Check leaf cells and see if this signal is an output
                   NONE_LOOP: for my $leafCell ($module->cells) {
-                      print "Cell Name: ", $leafCell->name, "\n" if $Debug;
+                      print "*****\nCell Name: ", $leafCell->name, "\n*****\n" if $Debug;
                       unless ( $leafCell->submodname eq $lastModule ) {
                           for my $leafPin ($leafCell->pins) {
-                              print "Cell Pin Name: ", $leafPin->name, "\n" if $Debug;
+                              #print "Cell Pin Name: ", $leafPin->name, "\n" if $Debug;
                               my $leafNet = $leafPin->net;
-                              print "Cell Pin Connection Name :", $leafNet->name, "\n" if $Debug;
-                              if ($leafNet->name eq $search) {
-                                  $lastModule = $module->name;
-                                  $module = $leafCell->submod;
-                                  $search = $leafPin->name;
-                                  $foundSignal = 1;
-                                  last NONE_LOOP;
+                              my $leafPort = $leafPin->port;
+
+                              # Only need ports that are outputs
+                              if ($leafPort) {
+                                  if ($leafPort->direction eq "out") {
+                                      if ($leafNet) {
+                                          print "Cell Output Connection Name :", $leafNet->name, "\n" if $Debug;
+                                          if ($leafNet->name eq $search) {
+                                              $lastModule = $module->name;
+                                              $module = $leafCell->submod;
+                                              $search = $leafPin->name;
+                                              $foundSignal = 1;
+                                              last NONE_LOOP;
+                                          }
+                                      } else {
+                                          print "Cell output is not connected or is a bus\n" if $Debug;
+                                      }
+                                  }
                               }
                           }
                       }
@@ -286,24 +299,42 @@ sub findSignal {
                         @returnData = parseModuleForNet($search, $module);
                         if ($returnData[0]) {
                             return @returnData;
+                        } else {
+                            # If subroutine gets to this point, the net was not found
+                            print "Searched signal not found\n" if $Debug;
+                            return;
                         }
                     }
+
                 } else {
                     if ($port->direction eq "out") {
+                        $foundSignal = 0;
                         print "%%%%% Found output declaration for search pattern %%%%%\n" if $Debug;
 
                         # Check leaf cells and see if this signal is an output
                       OUTPUT_LOOP: for my $leafCell ($module->cells) {
-                          print $module->name, " Cell: ", $leafCell->submodname, "\n" if $Debug;
+                          print "*****\nCell Name: ", $leafCell->submodname, "\n*****\n" if $Debug;
                           unless ( $leafCell->submodname eq $lastModule ) {
                               for my $leafPin ($leafCell->pins) {
                                   my $leafNet = $leafPin->net;
-                                  if ($leafNet->name eq $search) {
-                                      $lastModule = $module->name;
-                                      $module = $leafCell->submod;
-                                      $search = $leafPin->name;
-                                      $foundSignal = 1;
-                                      last OUTPUT_LOOP;
+                                  my $leafPort = $leafPin->port;
+
+                                  # Only need ports that are outputs
+                                  if ($leafPort) {
+                                      if ($leafPort->direction eq "out") {
+                                          if ($leafNet) {
+                                              print "Cell Output Connection Name :", $leafNet->name, "\n" if $Debug;
+                                              if ($leafNet->name eq $search) {
+                                                  $lastModule = $module->name;
+                                                  $module = $leafCell->submod;
+                                                  $search = $leafPin->name;
+                                                  $foundSignal = 1;
+                                                  last OUTPUT_LOOP;
+                                              }
+                                          } else {
+                                              print "Cell pin is not connected or is a bus\n" if $Debug;
+                                          }
+                                      }
                                   }
                               }
                           }
@@ -314,6 +345,10 @@ sub findSignal {
                             @returnData = parseModuleForNet($search, $module);
                             if ($returnData[0]) {
                                 return @returnData;
+                            } else {
+                                # If subroutine gets to this point, the net was not found
+                                print "Searched signal not found\n" if $Debug;
+                                return;
                             }
                         }
 
@@ -340,30 +375,36 @@ sub findSignal {
                         # If only one module instantiates this cell, go into that module and search again
                         if ( $size == 1 ) {
                             print "%%%%% Found input declaration for search pattern %%%%%\n" if $Debug;
-                            print "Cell Name: ", $cell->name, "\n" if $Debug;
+                            print "*****\nCell Name: ", $cell->name, "\n*****\n" if $Debug;
 
                             #Check all of the pins in this cell
                             for my $pin ($cell->pins) {
                                 print "Cell Pin Name: ", $pin->name, "\n" if $Debug;
                                 my $pinNet = $pin->net;
                                 
-                                print "Cell Pin Connection Name: ", $pinNet->name, "\n" if $Debug;
-                                
-                                # If the net connected to the pin matches the search pattern, go up to that module and search for the connected net name
-                                #FIXME: need to edit this, if 1'b0, 1'b1, or empty, need to stop there
-                                if ($pin->name eq $search) {
-                                    # Set the new $search value to this net's pin name
-                                    $search = $pinNet->name;
-                                    print "Next Search Pattern: $search\n" if $Debug;
+                                if ($pinNet) {
+                                    print "Cell Pin Connection Name: ", $pinNet->name, "\n" if $Debug;
+                                    
+                                    # If the net connected to the pin matches the search pattern, go up to that module and search for the connected net name
+                                    #FIXME: need to edit this, if 1'b0, 1'b1, or empty, need to stop there
+                                    if ($pin->name eq $search) {
+                                        # Set the new $search value to this net's pin name
+                                        $search = $pinNet->name;
+                                        print "Next Search Pattern: $search\n" if $Debug;
 
-                                    # Set the lastModule in order to prevent parsing loop
-                                    $lastModule = $module->name;
-                                    print "Last Module Name: ", $module->name, "\n" if $Debug;
+                                        # Set the lastModule in order to prevent parsing loop
+                                        $lastModule = $module->name;
+                                        print "Last Module Name: ", $module->name, "\n" if $Debug;
 
-                                    # Set the new module to parse, the module that instantiates the current module
-                                    $module = $cell->module;
-                                    print "Up-Module Name: ", $module->name, "\n" if $Debug;
-                                    last;
+                                        # Set the new module to parse, the module that instantiates the current module
+                                        $module = $cell->module;
+                                        print "Up-Module Name: ", $module->name, "\n" if $Debug;
+                                        last;
+                                    }
+
+                                #FIXME: if pin is a bus, there needs to be another way to parse this
+                                } else {
+                                    print "Cell Pin is not connected or is a bus\n" if $Debug;
                                 }
                             }
 
@@ -407,8 +448,12 @@ sub parseModuleForNet {
     # Pass parameters
     my $netName = $_[0];
     my $module  = $_[1];
-
-    $pp->open(filename => $nl->resolve_filename($module->name));
+    $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
+                                keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
+                                include_open_nonfatal => 1, # Ignore any include files that do not exist
+                                options             => $opt # Pass all verilog options in order to resolve filenames and defines
+                               );
+    $pp->open(filename => $nl->resolve_filename($module->name)); #FIXME this causes a segfault
     while (defined ( my $line = $pp->getline())) {
         if ( $line =~ /^\s?((assign\s$netName[\s\[\=\{])|(.*\([\w\s:]+\)[^<=]*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s?$netName[\s\[\}\,]))/ ) {
             print "Found definition of $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
