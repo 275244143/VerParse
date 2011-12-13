@@ -40,7 +40,7 @@
   (cons verparse-search-string verparse-signal-symbol-ring)
   
   ; Issue the verparse command
-  (setq verparse-output-string (shell-command-to-string (concat "verparse -t signal -f "
+  (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t signal -f "
                                                                 buffer-file-name
                                                                 " -s "
                                                                 verparse-search-string)))
@@ -65,7 +65,7 @@
   (cons verparse-search-string verparse-module-symbol-ring)
   
   ; Issue the verparse command
-  (setq verparse-output-string (shell-command-to-string (concat "verparse -t module -s "
+  (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t module -s "
                                                                 verparse-search-string)))
   ; Check to see if returned string is empty
   (if (string= "\n" verparse-output-string)
@@ -88,7 +88,7 @@
   (cons verparse-search-string verparse-define-symbol-ring)
   
   ; Issue the verparse command
-  (setq verparse-output-string (shell-command-to-string (concat "verparse -t define -s "
+  (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t define -s "
                                                                 verparse-search-string)))
   ; Check to see if returned string is empty
   (if (string= "\n" verparse-output-string)
