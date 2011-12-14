@@ -11,7 +11,7 @@ use strict;
 # Set global variables for 'use strict'
 
 use vars qw ($Debug $socketDir $socketFile $socket $requestType $currentFile $recData
-             $searchString $sentData $refreshServer $killServer);
+             $searchString $sentData $refreshServer $killServer $dumpNetlist);
 
 # Set global variables
 $Debug = 0;
@@ -29,7 +29,8 @@ if (! GetOptions (
           "f=s"      => \$currentFile,
           "s=s"      => \$searchString,
           "kill!"    => \$killServer,
-          "refresh!" => \$refreshServer
+          "refresh!" => \$refreshServer,
+          "dump_netlist!" => \$dumpNetlist
     )) {
     die "%Error: Bad usage, try 'vnetsearch --help'\n";
 }
@@ -42,6 +43,8 @@ if ($killServer) {
     $sentData = "kill=1";
 } elsif ($refreshServer) {
     $sentData = "refresh=1";
+} elsif ($dumpNetlist) {
+    $sentData = "dump_netlist=1";
 } elsif ($currentFile) {
     $sentData = "type=$requestType;search=$searchString;file=$currentFile";
 } else {

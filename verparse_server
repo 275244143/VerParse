@@ -85,6 +85,21 @@ while (1) {
         next;
     }
 
+    # Dump the netlist object for debugging
+    if (exists $recDataHash{dump_netlist}) {
+        print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
+        print "%%               Dumping Netlist Object for Debugging             %%\n";
+        print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n\n";
+        
+        $nl->dump;
+
+        print "\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
+        print "%%                     Netlist Dump Complete                      %%\n";
+        print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n";
+        print $com "Netlist object dumped on verparse_server. Run server in debug mode to view\n";
+        next;
+    }
+
     # Pass client data on to parsing subroutines and return result
     my @returnData;
     my @inputData;
