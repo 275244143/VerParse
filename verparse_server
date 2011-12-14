@@ -109,7 +109,6 @@ while (1) {
 
     $inputData[0] = $searchString;
     $inputData[1] = $fileString if exists $recDataHash{file};
-    print "Input data: $inputData[0]\n" if $Debug;
 
     # Search for define value
     @returnData = defineValue(@inputData) if $recDataHash{type} eq "define";
@@ -122,6 +121,9 @@ while (1) {
 
     # Trace the load of a net or register
     @returnData =  traceLoads(@inputData) if $recDataHash{type} eq "trace";
+
+    # Go up one level of hierarchy
+    @returnData =     upLevel($fileString) if $recDataHash{type} eq "up";
 
     # Send data to client
     $sendData = join(' ', @returnData);
@@ -535,6 +537,65 @@ sub defineValue {
 
 sub traceLoads {
 
+}
+
+######################################################################
+
+# Go up one level of hierarchy
+
+sub upLevel {
+    # Pull in arguments
+    my $filename = $_[0];
+
+    print "Go up one level of hierarchy command issued:\n" if $Debug;
+
+    # Get the module name from the given filename
+    my $fileref = $nl->read_file( filename => $filename );
+    my $moduleName  = $fileref->basename;
+    my $module = $nl->find_module($moduleName);
+
+    my @moduleArray;
+    my @cellArray;
+    my $cell = '';    
+    my $inc = 0;
+    for my $upModule ($nl->modules) {
+        for my $upCell ($upModule->cells) {
+            if ($upCell->submodname eq $module->name) {
+                $moduleArray[$inc] = $upModule;
+                $cellArray[$inc]   = $upCell;
+            }
+        }
+    }
+    
+    # Find the array size
+    my $size = @moduleArray;
+    $module = $moduleArray[0];
+    $cell = $cellArray[0];
+
+    # If only one instantiation found, go up one level
+    if ( $size == 1 ) {
+        # Get the file path of this module and parse it for the line number of the module instantiation
+        my $returnFile = $nl->resolve_filename($module->name);
+        my $cellName = $cell->submodname;
+        
+        $pp->open(filename => $returnFile);
+        while (defined ( my $line = $pp->getline())) {
+            if ( $line =~ /^\s?$cellName[\s\#\n]/ ) {
+                my $returnLine = $pp->lineno();
+                print "Found declaration of $cellName in file $returnFile on line $returnLine\n" if $Debug;
+                return ($returnFile, $returnLine);
+            }
+        }
+
+    # FIXME: Need to return all of the files and instantiation points if the current module
+    #        is instantiated in multiple places
+    } elsif ( $size > 1 ) {
+
+    }
+
+    # If subroutine gets to this point, this is the top level cell
+    print "The current module is a top module cell\n" if $Debug;
+    return;
 }
 
 ######################################################################

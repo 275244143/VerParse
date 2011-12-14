@@ -72,10 +72,10 @@
       (message (concat "The module '" verparse-search-string "' was not found."))
 
   ; Open up the returned file and move point to the returned line number
-  (progn
-    (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
-    (find-file (car verparse-output-list))
-    (goto-line (string-to-number (nth 1 verparse-output-list)))))
+    (progn
+      (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
+      (find-file (car verparse-output-list))
+      (goto-line (string-to-number (nth 1 verparse-output-list)))))
   )
 
 ; Run a define value search
@@ -100,6 +100,25 @@
     (message (concat "Value of define '" verparse-search-string "': " (car verparse-output-list)))))
   )
 
+; Go up one level of hierarchy
+(defun verparse-go-up-level ()
+  "Move the current buffer and point up one level of hierarchy"
+  (interactive)
+
+  ; Issue the verparse command
+  (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t up -f " buffer-file-name)))
+
+  ; Check the string value
+  (if (string= "\n" verparse-output-string)
+      (message "This module is a top level cell or has multiple instantiations")
+
+  ; Open up the returned file and move point to the returned line number
+    (progn
+      (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
+      (find-file (car verparse-output-list))
+      (goto-line (string-to-number (nth 1 verparse-output-list)))))
+  )
+
 
 ; Pull the verilog symbol from word under point
 (defun verparse-get-default-symbol ()
@@ -118,6 +137,7 @@
 (define-key verilog-mode-map "\C-c\C-f" 'verparse-signal-search)
 (define-key verilog-mode-map "\C-c\C-m" 'verparse-module-search)
 (define-key verilog-mode-map "\C-c\C-d" 'verparse-define-search)
+(define-key verilog-mode-map "\C-c\C-j" 'verparse-go-up-level)
 
 ;; Add commands to the Verilog-mode menu
 (easy-menu-add-item verilog-menu
@@ -136,6 +156,13 @@
       ["Return the define value" verparse-define-search
        :keys "C-c C-d"
        :help "Return the value of the given define"]
+      )
+
+(easy-menu-add-item verilog-menu
+   '("Verparse")
+      ["Go up one level of hierarchy" verparse-go-up-level
+       :keys "C-c C-j"
+       :help "Go up one level of hierarchy from the current buffer"]
       )
 
 ;; Remove the verilog-mode version of the module goto

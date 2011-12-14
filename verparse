@@ -46,7 +46,11 @@ if ($killServer) {
 } elsif ($dumpNetlist) {
     $sentData = "dump_netlist=1";
 } elsif ($currentFile) {
-    $sentData = "type=$requestType;search=$searchString;file=$currentFile";
+    if ($requestType eq "up") {
+        $sentData = "type=$requestType;file=$currentFile";
+    } else {
+        $sentData = "type=$requestType;search=$searchString;file=$currentFile";
+    }
 } else {
     $sentData = "type=$requestType;search=$searchString";
 }
