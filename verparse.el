@@ -119,6 +119,16 @@
       (goto-line (string-to-number (nth 1 verparse-output-list)))))
   )
 
+(defun verparse-rebuild-netlist ()
+  "Send the 'refresh' command to the verparse_server to rebuild the netlist object
+   for parsing. Run this command when signals/ports are added/removed."
+  (interactive)
+
+  ; Issue the refresh command
+  (shell-command (concat (executable-find "verparse") " --refresh"))
+
+  ; Send message to minibuffer
+  (message (concat "Refreshed verparse_server running in " (getenv "VERPARSE_SOCKET"))))
 
 ; Pull the verilog symbol from word under point
 (defun verparse-get-default-symbol ()
@@ -163,6 +173,12 @@
       ["Go up one level of hierarchy" verparse-go-up-level
        :keys "C-c C-j"
        :help "Go up one level of hierarchy from the current buffer"]
+      )
+
+(easy-menu-add-item verilog-menu
+   '("Verparse")
+      ["Rebuild netlist object" verparse-rebuild-netlist
+       :help "Run this command when signals/ports are added/removed"]
       )
 
 ;; Remove the verilog-mode version of the module goto
