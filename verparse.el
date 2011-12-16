@@ -55,6 +55,23 @@
     (goto-line (string-to-number (nth 1 verparse-output-list)))))
   )
 
+; Run a signal trace
+(defun verparse-signal-trace ()
+  "Issue a signal trace using the external verparse perl script and return the
+   files and associated line numbers of where the given signal goes"
+  (interactive)
+  ; Create an interactive prompt
+  (setq verparse-search-string (read-from-minibuffer "Trace signal: " (verparse-get-default-symbol) nil nil 'verparse-signal-symbol-ring))
+  (cons verparse-search-string verparse-signal-symbol-ring)
+
+  ; Issue the verparse command
+  (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t signal -f "
+                                                                buffer-file-name
+                                                                " -s "
+                                                                verparse-search-string)))
+  ; FIXME: not yet implemented
+  (message "Sorry! Not yet implemented"))
+
 ; Run a module definition search
 (defun verparse-module-search ()
   "Issue a module search using the external verparse perl script and open the
@@ -145,6 +162,7 @@
 ;; Keybindings for commands, add these to the verilog-mode-map
 ;; used in Emacs verilog-mode
 (define-key verilog-mode-map "\C-c\C-f" 'verparse-signal-search)
+(define-key verilog-mode-map "\C-c\C-l" 'verparse-signal-trace)
 (define-key verilog-mode-map "\C-c\C-m" 'verparse-module-search)
 (define-key verilog-mode-map "\C-c\C-d" 'verparse-define-search)
 (define-key verilog-mode-map "\C-c\C-j" 'verparse-go-up-level)
@@ -154,6 +172,12 @@
    '("Verparse")
       ["Goto signal definition" verparse-signal-search
        :help "Go to the definition of the given signal"])
+
+(easy-menu-add-item verilog-menu
+   '("Verparse")
+      ["Trace net load" verparse-signal-trace
+       :keys "C-c C-l"
+       :help "Trace the loads of the given signal"])
 
 (easy-menu-add-item verilog-menu
    '("Verparse")

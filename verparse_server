@@ -567,6 +567,8 @@ sub defineValue {
 
 sub traceLoads {
 
+    #FIXME: not yet implemented
+    return;
 }
 
 ######################################################################
