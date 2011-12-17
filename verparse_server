@@ -524,11 +524,19 @@ sub findModule {
 
     #Parse the Verilog::Netlist object for the file and line number of the module declaration
     my $foundModule = $nl->find_module($search);
+    print "Module name: ", $foundModule->name, "\n" if $Debug;
     my $returnFile  = $nl->resolve_filename($foundModule->name);
+    print "Found file : $returnFile\n" if $Debug;
+
+    $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
+                                keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
+                                include_open_nonfatal => 1, # Ignore any include files that do not exist
+                                options             => $opt # Pass all verilog options in order to resolve filenames and defines
+        );
 
     $pp->open(filename => $returnFile);
     while (defined ( my $line = $pp->getline())) {
-        if ( $line =~ /^\s?module\s$search[\s\(]/ ) {
+        if ( $line =~ /^\s?module\s$search[\s\(\n]/ ) {
             my $returnLine = $pp->lineno();
             print "Found declaration of $search in file $returnFile on line $returnLine\n" if $Debug;
             return ($returnFile, $returnLine);
@@ -610,6 +618,12 @@ sub upLevel {
         my $returnFile = $nl->resolve_filename($module->name);
         my $cellName = $cell->submodname;
         
+        $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
+                                    keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
+                                    include_open_nonfatal => 1, # Ignore any include files that do not exist
+                                    options             => $opt # Pass all verilog options in order to resolve filenames and defines
+            );
+
         $pp->open(filename => $returnFile);
         while (defined ( my $line = $pp->getline())) {
             if ( $line =~ /^\s?$cellName[\s\#\n]/ ) {
