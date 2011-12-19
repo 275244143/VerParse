@@ -1,0 +1,74 @@
+###################################################################
+###################################################################
+
+VerParse Project - Convert your editor to a full blown Verilog IDE
+
+###################################################################
+###################################################################
+
+Hi there! This is my first GitHub repo, and my first serious independent
+software project. If you want to help, please ask! I'm not the greatest
+Perl programmer, and I am a novice at Emacs lisp, so you have been
+warned. Verilog is what I do for a living, Perl is what I do for
+fun :)
+
+Just some legal stuff, everything here is open source. Details are in
+the individual scripts themselves. Basically, do what you want with
+this, I hope you find value in it. That said, I offer no warranties
+or guarantees. If you ask nicely, I will try to get to feature
+requests and bugs as they are sent in. There are currently TONS
+of bugs and issues with this, but I'm getting there. More help
+would be GREATLY appreciated. Now on to the fun stuff...
+
+There are 3 main parts:
+
+1. verparse_server
+2. verparse
+3. verparse.el
+
+The verparse_server script runs in the background. It pulls in
+a Verilog project's *.f files and creates a netlist object using
+the Verilog::Netlist Perl module. This module is VERY powerful
+for parsing verilog scripts. To get the full blown documentation,
+go here:
+
+http://www.veripool.org/wiki/verilog-perl
+
+With the netlist object built, all the signal, module, define,
+etc. parsing is done within verparse_server. Parsing requests
+come from the client application, verparse.
+
+The server also creates a Unix domain socket that runs in an
+environment variable called VERPARSE_SOCKET. This is used to
+receive requests and send responses to the client application.
+
+The verparse script takes some input arguments and issues
+requests from the running verparse_server with the Unix
+domain socket at VERPARSE_SOCKET. This script also will not
+run without this environment variable set.
+
+The last part is the verparse.el Emacs lisp file that gets
+loaded with Emacs when you enter verilog-mode. This file
+requires verilog-mode to be loaded on Emacs startup, since
+it currently piggybacks on the 'Verilog' menu and replaces
+a couple keymaps. 
+
+All together, this allows you from Emacs to move the cursor
+over a signal, enter the keycode "C-c C-f" and it will
+move point to the line and file in which this signal is declared. Or you
+can type "C-c C-d" and the value of the define under point will
+be displayed in the minibuffer. "C-c C-m" will take you to a
+module definition. "C-c C-l" will trace the signal under
+point through the project hierarchy (eventually, haven't started this one yet)
+Pretty cool huh?
+
+Like I said though, this is still in its infancy. Basically
+the product of a few long weekends. With the modularity of it all,
+I am hoping to also include some Vimscript for Vim users to get
+onboard, and other editors if users want them (and code for them :))
+
+Thanks for viewing!
+
+
+
+
