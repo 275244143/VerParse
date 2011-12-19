@@ -195,7 +195,8 @@ sub buildNetlist {
                                 keep_comments => 0,
                                 use_vars => 1,
                                 implicit_wires_ok => 1,
-                                link_read_nonfatal => 1, # Comment this out when all project *.f files are formatted correctly
+                                link_read  => 1,
+                                #link_read_nonfatal => 1, # Comment this out when all project *.f files are formatted correctly
                                 include_open_nonfatal => 1
                                );
 
@@ -259,6 +260,9 @@ sub findSignal {
 
         print "Starting Module: $moduleName\n" if $Debug;
 
+        # This is needed to get all of the cell interconnect information
+        $nl->link();
+
         if ($moduleName) {
             my $module = $nl->find_module($moduleName);
             my $lastModule = $module->name;
@@ -298,6 +302,7 @@ sub findSignal {
                               my $leafPort = $leafPin->port;
 
                               print "Cell Pin Name       : ", $leafPin->name, "\n" if $Debug;
+                              print "Cell Net Name       : ", $leafNet->name, "\n" if ($Debug && $leafNet);
 
                               # Only need ports that are outputs
                               if ($leafPort) {
