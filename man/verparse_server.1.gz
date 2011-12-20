@@ -123,61 +123,62 @@
 .rm #[ #] #H #V #F C
 .\" ========================================================================
 .\"
-.IX Title "VERPARSE 1"
-.TH VERPARSE 1 "2011-12-06" "perl v5.10.1" "User Contributed Perl Documentation"
+.IX Title "VERPARSE_SERVER 1"
+.TH VERPARSE_SERVER 1 "2011-12-19" "perl v5.10.1" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
 .nh
 .SH "NAME"
-verparse \- Sends parsing requests to the running verparse_server
+verparse_server \- Setup a server to be used in connection with the
+client program (see verparse)
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-.Vb 4
-\&  verparse \-\-help
-\&  verparse \-\-refresh
-\&  verparse \-\-kill
-\&  verparse [\-\-debug] [\-t request_type] [\-s search_string] [\-f file]
+.Vb 2
+\&  verparse_server \-\-help
+\&  verparse_server [verilog_options] [\-\-debug]
 .Ve
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
-verparse sends search requests to a running verparse_server and
-receives data regarding which verilog file and line number from the
-search result.
-.SH "VERPARSE ARGUMENTS"
-.IX Header "VERPARSE ARGUMENTS"
+verparse_server uses the Verilog::Netlist perl module to build a netlist of the project.
+It also sets up a \s-1UNIX\s0 domain socket in order to process search requests from the client
+program verparse. See the verparse manpage for a description of commands.
+.SH "VERILOG ARGUMENTS"
+.IX Header "VERILOG ARGUMENTS"
+The following arguments are compatible with \s-1GCC\s0, \s-1VCS\s0 and most Verilog
+programs.
+.IP "+define+\fIvar\fR+\fIvalue\fR =item \-D\fIvar\fR=\fIvalue\fR" 4
+.IX Item "+define+var+value =item -Dvar=value"
+Defines the given preprocessor symbol.
+.IP "\-f \fIfile\fR" 4
+.IX Item "-f file"
+Read the specified file, and act as if all text inside it was
+specified as command line parameters.
+.IP "+incdir+\fIdir\fR =item \-I\fIdir\fR" 4
+.IX Item "+incdir+dir =item -Idir"
+Add the directory to the list of directories that should be searched
+for include directories or libraries.
+.IP "+libext+\fIext\fR+\fIext\fR..." 4
+.IX Item "+libext+ext+ext..."
+Specify the extensions that should be used for finding modules.  If for
+example module \fIx\fR is referenced, look in \fIx\fR.\fIext\fR.
+.IP "\-sv" 4
+.IX Item "-sv"
+Specifies SystemVerilog language features should be enabled; equivalent to
+\&\*(L"\-\-language 1800\-2005\*(R".  This option is selected by default, it exists for
+compatibility with other simulators.
+.IP "\-y \fIdir\fR" 4
+.IX Item "-y dir"
+Add the directory to the list of directories that should be searched
+for include directories or libraries.
+.SH "VERPARSE_SERVER ARGUMENTS"
+.IX Header "VERPARSE_SERVER ARGUMENTS"
 .IP "\-\-help" 4
 .IX Item "--help"
 Displays this message and exits
 .IP "\-\-debug" 4
 .IX Item "--debug"
-Displays useful debug information regarding sent and received data
-.IP "\-\-refresh" 4
-.IX Item "--refresh"
-Forces the verparse_server to rebuild the Verilog::Netlist object. This should be
-performed whenever a compile takes place or when verilog files are added/removed.
-.IP "\-\-kill" 4
-.IX Item "--kill"
-Sends and \s-1INT\s0 signal to the verparse_server, causing it to gracefully shutdown
-.IP "\-t \fIrequest_type\fR" 4
-.IX Item "-t request_type"
-Determines which command should be sent to the server. Valid options are:
-    * signal   \-\-> performs a signal search and returns the file and line number
-                   of the searched signal's declaration. There are 2 routines
-                   available, depending on whether or not the \-f option is passed
-    * module   \-\-> performs a module search and returns the file and line number
-                   of the searched module's declaration
-    * define   \-\-> returns the value of the searched define's value
-    * trace    \-\-> performs a trace on the given signal. Returns all the file and
-                   line number data regarding where the searched signal connects
-.IP "\-s \fIsearch_string\fR" 4
-.IX Item "-s search_string"
-Determines the search string passed to the server. Only exact matches are valid.
-Regular expressions are not supported at this time.
-.IP "\-f \fIfile\fR" 4
-.IX Item "-f file"
-Defines the starting file for a signal search or trace. This allows for a
-faster and more accurate search routine to be utilized.
+Displays useful debug information about server processes
 .SH "DISTRIBUTION"
 .IX Header "DISTRIBUTION"
 Verilog-Perl is part of the <http://www.veripool.org/> free Verilog \s-1EDA\s0

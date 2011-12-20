@@ -671,7 +671,7 @@ client program (see L<verparse>)
 
 verparse_server uses the Verilog::Netlist perl module to build a netlist of the project.
 It also sets up a UNIX domain socket in order to process search requests from the client
-program L<verparse>
+program L<verparse>. See the verparse manpage for a description of commands.
 
 =head1 VERILOG ARGUMENTS
 

@@ -114,6 +114,7 @@ verparse - Sends parsing requests to the running verparse_server
 
   verparse --help
   verparse --refresh
+  verparse --dump_netlist
   verparse --kill
   verparse [--debug] [-t request_type] [-s search_string] [-f file]
 
@@ -140,6 +141,14 @@ Displays useful debug information regarding sent and received data
 Forces the verparse_server to rebuild the Verilog::Netlist object. This should be
 performed whenever a compile takes place or when verilog files are added/removed.
 
+=item --dump_netlist
+
+Dumps the entire netlist object into the terminal running the verparse_server.
+The verparse_server instance must be run with the --debug option for the
+object to be seen. This is usually quite large, as it contains all of a project's
+modules, cells, nets, ports, defines, and signal assignments. Only use this if
+you are tracking down a serious bug.
+
 =item --kill
 
 Sends and INT signal to the verparse_server, causing it to gracefully shutdown
@@ -154,7 +163,8 @@ Determines which command should be sent to the server. Valid options are:
                    of the searched module's declaration
     * define   --> returns the value of the searched define's value
     * trace    --> performs a trace on the given signal. Returns all the file and
-                   line number data regarding where the searched signal connects
+                   line number data regarding where the searched signal connects.
+                   This feature is not yet implemented
 
 =item -s I<search_string>
 
