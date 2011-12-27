@@ -507,7 +507,7 @@ sub parseModuleForNet {
                                );
     $pp->open(filename => $nl->resolve_filename($module->name));
     while (defined ( my $line = $pp->getline())) {
-        if ( $line =~ /^\s?((assign\s$netName[\s\[\=\{])|(.*\([\w\s:]+\)[^<=]*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s?$netName[\s\[\}\,]))/ ) {
+        if ( $line =~ /^\s?((assign((\s$netName)|(\s?\{[^<=]*$netName[^<=]*\}))[\s\[\=])|(.*\([\w\s:]+\)[^<=]*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s?$netName[\s\[\}\,]))/ ) {
             print "Found definition of $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
             my $returnFile = $nl->resolve_filename($module->name);
             my $returnLine = $pp->lineno();
