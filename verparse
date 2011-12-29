@@ -17,7 +17,7 @@ use vars qw ($Debug $socketDir $socketFile $socket $requestType $currentFile $re
 $Debug = 0;
 $socketDir = $ENV{'VERPARSE_SOCKET'};
     # See if the $sockedDir environment variable has been set, if not, exit
-    die "The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
+    die "ERROR: The VERPARSE_SOCKET environment variable isn't set!" unless $socketDir;
 
 $socketFile = "$socketDir/socket";
 
@@ -32,7 +32,7 @@ if (! GetOptions (
           "refresh!" => \$refreshServer,
           "dump_netlist!" => \$dumpNetlist
     )) {
-    die "%Error: Bad usage, try 'vnetsearch --help'\n";
+    die "ERROR: Bad usage, try 'verparse --help'";
 }
 
 # Setup up communication port
@@ -90,11 +90,10 @@ sub createSocket {
     if (-S $socketFile) {
         $socket = IO::Socket::UNIX->new(Peer => $socketFile,
                                         Type => SOCK_STREAM
-                                       ) or die ( "Can't connect to server: $!\n");
+                                       ) or die ( "ERROR: Can't connect to server: $!");
         
     } else {
-        print "No verparse_server running...\n\nExitting...\n";
-        exit (1);
+        die "ERROR: No verparse_server running!";
     }
 }
 

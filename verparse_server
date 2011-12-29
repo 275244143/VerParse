@@ -21,7 +21,7 @@ $Debug = 0;
 %recDataHash = ();
 $socketDir = $ENV{'VERPARSE_SOCKET'};
     # See if the $sockedDir environment variable has been set, if not, exit
-    die "The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
+    die "ERROR: The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
 
 $socketFile = "$socketDir/socket";
 
@@ -45,7 +45,7 @@ if (! GetOptions (
           "debug"   => \&debug,
           "<>"      => \&parameter,
     )) {
-    die "%Error: Bad usage, try 'vnetsearch --help'\n";
+    die "ERROR: Bad usage, try 'verparse_server --help'\n";
 }
 
 print "Using UNIX domain socket $socketFile\n";

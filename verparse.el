@@ -30,6 +30,20 @@
 (defvar verparse-module-symbol-ring nil)
 (defvar verparse-define-symbol-ring nil)
 
+; Remove new line from string if it exists
+(defun chomp(string)
+  "Perform a perl-like chomp"
+  (let ((s string)) (if (string-match "\\(.*\\)\n" s) (match-string 1 s) s)))
+
+; Error detection
+(defun verparse-error-detect (verparse-string-to-check)
+  "Check the output string from the verparse script to see if there is an
+   'ERROR:' prefix. If so, output the error string given from the verparse command."
+
+  (setq verparse-string-to-check-list (split-string verparse-string-to-check "[ \n]+" t))
+
+  (if (string= "ERROR:" (car verparse-string-to-check-list)) t))
+
 ; Run a signal definition search
 (defun verparse-signal-search ()
   "Issue a signal search using the external verparse perl script and open the
@@ -44,6 +58,10 @@
                                                                 buffer-file-name
                                                                 " -s "
                                                                 verparse-search-string)))
+
+  ; Check to make sure there are no errors returned from the verparse script
+  (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
+
   ; Check to see if returned string is empty
   (if (string= "\n" verparse-output-string)
       (message (concat "The signal '" verparse-search-string "' was not found."))
@@ -69,6 +87,10 @@
                                                                 buffer-file-name
                                                                 " -s "
                                                                 verparse-search-string)))
+
+  ; Check to make sure there are no errors returned from the verparse script
+  (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
+
   ; FIXME: not yet implemented
   (message "Sorry! Not yet implemented"))
 
@@ -84,6 +106,10 @@
   ; Issue the verparse command
   (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t module -s "
                                                                 verparse-search-string)))
+
+  ; Check to make sure there are no errors returned from the verparse script
+  (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
+
   ; Check to see if returned string is empty
   (if (string= "\n" verparse-output-string)
       (message (concat "The module '" verparse-search-string "' was not found."))
@@ -107,6 +133,10 @@
   ; Issue the verparse command
   (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t define -s "
                                                                 verparse-search-string)))
+
+  ; Check to make sure there are no errors returned from the verparse script
+  (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
+
   ; Check to see if returned string is empty
   (if (string= "\n" verparse-output-string)
       (message (concat "The define '" verparse-search-string "' was not found."))
@@ -124,6 +154,9 @@
 
   ; Issue the verparse command
   (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t up -f " buffer-file-name)))
+
+  ; Check to make sure there are no errors returned from the verparse script
+  (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
 
   ; Check the string value
   (if (string= "\n" verparse-output-string)
@@ -143,6 +176,9 @@
 
   ; Issue the refresh command
   (shell-command (concat (executable-find "verparse") " --refresh"))
+
+  ; Check to make sure there are no errors returned from the verparse script
+  (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
 
   ; Send message to minibuffer
   (message (concat "Refreshed verparse_server running in " (getenv "VERPARSE_SOCKET"))))
