@@ -14,14 +14,17 @@ use strict;
 # Set global variables for 'use strict'
 use vars qw ( $Debug $socketFile $socketDir $socket $opt
               $nl $pp $com $recData %recDataHash $sendData
+              @inputArgs
 );
 
 # Set global variables
 $Debug = 0;
 %recDataHash = ();
+@inputArgs = @ARGV;
 $socketDir = $ENV{'VERPARSE_SOCKET'};
-    # See if the $sockedDir environment variable has been set, if not, exit
-    die "ERROR: The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
+
+# See if the $sockedDir environment variable has been set, if not, exit
+die "ERROR: The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
 
 $socketFile = "$socketDir/socket";
 
@@ -30,23 +33,6 @@ $SIG{INT} = \&interrupt_handler;
 
 # Setup communication port
 createSocket();
-
-# Get command line options
-$opt = new Verilog::Getopt();
-
-@ARGV = $opt->parameter(@ARGV);
-# print "Included extensions  :", $opt->libext(), "\n"; #debug
-# print "Included directories :", $opt->incdir(), "\n"; #debug
-# print "Included module directories :", $opt->module_dir(), "\n"; #debug
-# print "Included files       :", $opt->library(), "\n"; #debug
-
-if (! GetOptions (
-          "help"    => \&usage,
-          "debug"   => \&debug,
-          "<>"      => \&parameter,
-    )) {
-    die "ERROR: Bad usage, try 'verparse_server --help'\n";
-}
 
 print "Using UNIX domain socket $socketFile\n";
 
@@ -189,7 +175,20 @@ sub createSocket {
 sub buildNetlist {
     # Delete an existing netlist object before a refresh
     $nl->delete if $nl;
-        
+
+    # Get command line options
+    $opt = new Verilog::Getopt();
+
+    @ARGV = $opt->parameter(@inputArgs);
+
+    if (! GetOptions (
+              "help"    => \&usage,
+              "debug"   => \&debug,
+              "<>"      => \&parameter,
+        )) {
+        die "ERROR: Bad usage, try 'verparse_server --help'\n";
+    }
+
     # Create new netlist object
     $nl = new Verilog::Netlist (options => $opt,
                                 keep_comments => 0,
@@ -401,6 +400,7 @@ sub findSignal {
                         # If the port is an input, go to the instantiating module
                     } elsif ($port->direction eq "in") {
                         # Parse through the other modules and find which instantiate this module
+                        $foundSignal = 0;
                         my @moduleArray;
                         my @cellArray;
                         my $inc = 0;
@@ -416,7 +416,7 @@ sub findSignal {
                         
                         # Find the array size
                         my $size = @moduleArray;
-                        $cell = $cellArray[0];
+                        $cell = $moduleArray[0];
 
                         # If only one module instantiates this cell, go into that module and search again
                         if ( $size == 1 ) {
@@ -429,53 +429,64 @@ sub findSignal {
                             print "*********************************************************\n" if $Debug;
                             print "*********************************************************\n" if $Debug;
 
-                            unless ( $cell->submodname eq $lastModule ) {
-
-                                #Check all of the pins in this cell
-                                for my $pin ($cell->pins) {
-                                    print "Cell Pin Name       : ", $pin->name, "\n" if $Debug;
-                                    my $pinNet = $pin->net;
+                            #Check all of the pins in this cell
+                            for my $pin ($cell->ports) {
+                                print "Cell Pin Name       : ", $pin->name, "\n" if $Debug;
+                                my $pinNet = $pin->net;
+                                
+                                if ($pinNet) {
+                                    print "Cell Net Name       : ", $pinNet->name, "\n" if $Debug;
                                     
-                                    if ($pinNet) {
-                                        print "Cell Net Name       : ", $pinNet->name, "\n" if $Debug;
-                                        
-                                        # If the net connected to the pin matches the search pattern, go up to that module and search for the connected net name
-                                        #FIXME: need to edit this, if 1'b0, 1'b1, or empty, need to stop there
-                                        if ($pin->name eq $search) {
-                                            # Set the new $search value to this net's pin name
-                                            $search = $pinNet->name;
-                                            print "Next Search Pattern : $search\n" if $Debug;
+                                    # If the net connected to the pin matches the search pattern, go up to that module and search for the connected net name
+                                    #FIXME: need to edit this, if 1'b0, 1'b1, or empty, need to stop there
+                                    if ($pin->name eq $search) {
+                                        # Set the new $search value to this net's pin name
+                                        $search = $pinNet->name;
+                                        print "Next Search Pattern : $search\n" if $Debug;
 
-                                            # Set the lastModule in order to prevent parsing loop
-                                            $lastModule = $module->name;
-                                            print "Last Module Name    : ", $module->name, "\n" if $Debug;
+                                        # Set the lastModule in order to prevent parsing loop
+                                        $lastModule = $module->name;
+                                        print "Last Module Name    : ", $module->name, "\n" if $Debug;
 
-                                            # Set the new module to parse, the module that instantiates the current module
-                                            $module = $cell->module;
-                                            print "Up-Module Name      : ", $module->name, "\n" if $Debug;
-                                            last;
-                                        }
-
-                                        #FIXME: if pin is a bus, there needs to be another way to parse this
-                                    } else {
-                                        print "Cell Pin is not connected or is a bus\n" if $Debug;
+                                        # Set the new module to parse, the module that instantiates the current module
+                                        $module = '';
+                                        $module = $cell;
+                                        print "Up-Module Name      : ", $module->name, "\n" if $Debug;
+                                        $foundSignal = 1;
+                                        last;
                                     }
+
+                                    #FIXME: if pin is a bus, there needs to be another way to parse this
+                                } else {
+                                    print "Cell Pin is not connected or is a bus\n" if $Debug;
                                 }
                             }
 
-                            # If subroutine gets to this point, the net was not found
-                            print "Searched signal not found\n" if $Debug;
-                            return;
+                            # If the port is not found on the instantiating module, exit input loop and search again.
+                            $module = '';
+                            $module = $cell;
+                            $lastModule = $module->name;
+                            
+                            print "Next Search Pattern : $search\n" if $Debug;
+                            print "Last Module Name    : ", $module->name, "\n" if $Debug;
+                            print "Up-Module Name      : ", $module->name, "\n" if $Debug;
 
                         # FIXME: If several modules instantiate this cell, return all instantiating modules files' and the line number where the search stopped
                         } elsif ( $size > 1 ) {
-
-
+                            # If subroutine gets to this point, the net was not found
+                            print "Searched signal not found. Multiple instantiations.\n" if $Debug;
+                            return;
                         } else {
                             # If subroutine gets to this point, the net was not found
                             print "Searched signal not found\n" if $Debug;
                             return;
                         }
+
+                        # If the port is an inout, exit for now. Need to fix this in the future
+                    } elsif ($port->direction eq "inout") {
+                        # If subroutine gets to this point, the net was not found
+                        print "Searched signal not found\n" if $Debug;
+                        return;
                     }
                 }
             }
