@@ -195,6 +195,25 @@
 			(skip-chars-forward "a-zA-Z0-9_")
 			(point)))))
 
+; Toggle a clickable list that includes all instantiated modules
+(defun verparse-toggle-module-list ()
+  "Build and toggle visability of a clickable list that includes all of
+   the projects instantiated modules."
+  (interactive)
+
+  ; Issue the module_list command
+  (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t module_list")))
+
+  ; Check to make sure there are no errors returned from the verparse script
+  (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
+
+  ; Create the module list
+  (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
+
+  ; FIXME: Need to implement this!
+)
+
+
 ;; Keybindings for commands, add these to the verilog-mode-map
 ;; used in Emacs verilog-mode
 (define-key verilog-mode-map "\C-c\C-f" 'verparse-signal-search)
@@ -239,6 +258,12 @@
    '("Verparse")
       ["Rebuild netlist object" verparse-rebuild-netlist
        :help "Run this command when signals/ports are added/removed"]
+      )
+
+(easy-menu-add-item verilog-menu
+   '("Verparse")
+      ["Toggle module list" verparse-toggle-module-list
+       :help "Toggle a clickable module list"]
       )
 
 ;; Remove the verilog-mode version of the module goto

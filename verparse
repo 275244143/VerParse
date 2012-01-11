@@ -51,8 +51,10 @@ if ($killServer) {
     } else {
         $sentData = "type=$requestType;search=$searchString;file=$currentFile";
     }
-} else {
+} elsif ($searchString) {
     $sentData = "type=$requestType;search=$searchString";
+} else {
+    $sentData = "type=$requestType";
 }
 
 print "Data sent to verparse_server: $sentData\n" if $Debug;
@@ -155,15 +157,18 @@ Sends and INT signal to the verparse_server, causing it to gracefully shutdown
 =item -t I<request_type>
 
 Determines which command should be sent to the server. Valid options are:
-    * signal   --> performs a signal search and returns the file and line number
-                   of the searched signal's declaration. There are 2 routines
-                   available, depending on whether or not the -f option is passed
-    * module   --> performs a module search and returns the file and line number
-                   of the searched module's declaration
-    * define   --> returns the value of the searched define's value
-    * trace    --> performs a trace on the given signal. Returns all the file and
-                   line number data regarding where the searched signal connects.
-                   This feature is not yet implemented
+    * signal      --> performs a signal search and returns the file and line number
+                      of the searched signal's declaration. There are 2 routines
+                      available, depending on whether or not the -f option is passed
+    * module      --> performs a module search and returns the file and line number
+                      of the searched module's declaration
+    * define      --> returns the value of the searched define's value
+    * trace       --> performs a trace on the given signal. Returns all the file and
+                      line number data regarding where the searched signal connects.
+                      This feature is not yet implemented
+    * module_list --> outputs each module, the file it is instantiated in, and the
+                      line number the instantiation occurs. Used to build a clickable
+                      list in Emacs for quick searching.
 
 =item -s I<search_string>
 

@@ -109,7 +109,10 @@ while (1) {
     @returnData =  traceLoads(@inputData) if $recDataHash{type} eq "trace";
 
     # Go up one level of hierarchy
-    @returnData =     upLevel($fileString) if $recDataHash{type} eq "up";
+    @returnData =  upLevel($fileString)   if $recDataHash{type} eq "up";
+
+    # Return the module list
+    @returnData = returnModuleList()      if $recDataHash{type} eq "module_list";
 
     # Send data to client
     $sendData = join(' ', @returnData);
@@ -599,6 +602,31 @@ sub upLevel {
     # If subroutine gets to this point, this is the top level cell
     print "The current module is a top module cell\n" if $Debug;
     return;
+}
+
+######################################################################
+
+# Return a list of all the module names along with the file and line
+# number in which they are instantiated
+
+sub returnModuleList {
+
+    my @returnData;
+
+    print "Return module list command issued:\n" if $Debug;
+
+    # Get all of the modules
+    for my $module ($nl->modules) {
+        
+        # Get the module filename and line number
+
+        my ($file, $line) = findModule($module->name);
+        print " $file $line\n" if $Debug;
+        my @moduleData = ($module->name, $file, $line);
+        push(@returnData, @moduleData);
+    }
+
+    return @returnData;
 }
 
 ######################################################################
