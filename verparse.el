@@ -195,9 +195,9 @@
 			(skip-chars-forward "a-zA-Z0-9_")
 			(point)))))
 
-; Toggle a clickable list that includes all instantiated modules
+; Toggle view of a buffer with a clickable list that includes all instantiated modules
 (defun verparse-toggle-module-list ()
-  "Build and toggle visability of a clickable list that includes all of
+  "Build a clickable list that includes all of
    the projects instantiated modules."
   (interactive)
 
@@ -208,11 +208,26 @@
   (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
 
   ; Create the module list
-  (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
+  ; FIXME: may need to break this into a list, not sure yet...
+  ;(setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
+  (setq verparse-list-string (replace-regexp-in-string "[ ]\\([0-9]+\\)[ ]" " \\1\n" verparse-output-string))
 
-  ; FIXME: Need to implement this!
+  (if (get-buffer-window "*verparse module list*")
+      (progn
+        (delete-window module-list)
+        )
+    (progn
+      (setq w1 (selected-window))
+      (setq module-list (split-window w1))
+      (window-edges w1)
+      (window-edges module-list)
+      (switch-to-buffer-other-window "*verparse module list*")
+      (insert verparse-list-string)
+      ; FIXME: next step is to make these entries clickable
+      ;(make-text-button point-min point-max)
+      ))
+
 )
-
 
 ;; Keybindings for commands, add these to the verilog-mode-map
 ;; used in Emacs verilog-mode
