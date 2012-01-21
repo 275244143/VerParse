@@ -268,6 +268,7 @@ sub findSignal {
         if ($moduleName) {
             my $module = $nl->find_module($moduleName);
             my $lastModule = $module->name;
+            my $lastSearch = $search;
             my $port = '';
 
             # Iterate through connected modules until the signal declaration is found
@@ -313,11 +314,14 @@ sub findSignal {
                                           print "Cell Net Name       : ", $leafNet->name, "\n" if $Debug;
                                           if ($leafNet->name eq $search) {
                                               $lastModule = $module->name;
+                                              $lastSearch = $search;
                                               $module = $leafCell->submod;
                                               $search = $leafPin->name;
+                                              print "\nSignal Found!\n" if $Debug;
+                                              print "Last Search Pattern : $lastSearch\n" if $Debug;
                                               print "Next Search Pattern : $search\n" if $Debug;
                                               print "Last Module Name    : $lastModule\n" if $Debug;
-                                              print "Up-Module Name      : ", $module->name, "\n" if $Debug;
+                                              print "Up-Module Name      : ", $module->name, "\n\n" if $Debug;
                                               $foundSignal = 1;
                                               last NONE_OUTPUT_LOOP;
                                           }
@@ -332,7 +336,7 @@ sub findSignal {
 
                     unless ($foundSignal) {
                         my @returnData;
-                        @returnData = parseModuleForNet($search, $module);
+                        @returnData = parseModuleForNet($search, $module, $lastSearch);
                         if ($returnData[0]) {
                             return @returnData;
                         } else {
@@ -380,14 +384,17 @@ sub findSignal {
                             print "Cell Pin Name       : ", $pin->name, "\n" if $Debug;
                             my $pinNet = $pin->net;
                             
-                            if ($pinNet) {
-                                print "Cell Net Name       : ", $pinNet->name, "\n" if $Debug;
+                            if ($pin) {
+                                print "Cell Net Name       : ", $pin->netname, "\n" if $Debug;
                                 
                                 # If the net connected to the pin matches the search pattern, go up to that module and search for the connected net name
                                 #FIXME: need to edit this, if 1'b0, 1'b1, or empty, need to stop there
                                 if ($pin->name eq $search) {
+                                    # Save last search value
+                                    $lastSearch = $search;
+
                                     # Set the new $search value to this net's pin name
-                                    $search = $pinNet->name;
+                                    $search = $pin->netname;
 
                                     # Set the lastModule in order to prevent parsing loop
                                     $lastModule = $module->name;
@@ -396,9 +403,11 @@ sub findSignal {
                                     $module = '';
                                     $module = $upModule;
 
+                                    print "\nSignal Found!\n" if $Debug;
+                                    print "Last Search Pattern : $lastSearch\n" if $Debug;
                                     print "Next Search Pattern : $search\n" if $Debug;
                                     print "Last Module Name    : ", $lastModule, "\n" if $Debug;
-                                    print "Up-Module Name      : ", $module->name, "\n" if $Debug;
+                                    print "Up-Module Name      : ", $module->name, "\n\n" if $Debug;
                                     $foundSignal = 1;
                                     last;
                                 }
@@ -409,7 +418,7 @@ sub findSignal {
                             }
                         }
 
-                        # FIXME: If several modules instantiate this cell, return all instantiating modules files' and the line number where the search stopped
+                    # FIXME: If several modules instantiate this cell, return all instantiating modules files' and the line number where the search stopped
                     } elsif ( $size > 1 ) {
                         # If subroutine gets to this point, the net was not found
                         print "Searched signal not found. Multiple instantiations.\n" if $Debug;
@@ -455,14 +464,40 @@ sub parseModuleForNet {
     # Pass parameters
     my $netName = $_[0];
     my $module  = $_[1];
+    my $lastSearch = $_[2];
     $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
                                 keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
                                 include_open_nonfatal => 1, # Ignore any include files that do not exist
                                 options             => $opt # Pass all verilog options in order to resolve filenames and defines
                                );
+
+    if ($netName) {
+        $pp->open(filename => $nl->resolve_filename($module->name));
+        while (defined ( my $line = $pp->getline())) {
+            if ( $line =~ /^\s?((assign((\s$netName)|(\s?\{[^<=]*$netName[^<=]*\}))[\s\[\=])|(.*\([\w\s:]+\)[^<=]*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s?$netName[\s\[\}\,]))/ ) {
+                print "Found definition of $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
+                my $returnFile = $nl->resolve_filename($module->name);
+                my $returnLine = $pp->lineno();
+                my @returnData = ($returnFile, $returnLine);
+                return @returnData;
+            }
+        }
+    }
+
+    # search for the pin rename. The above fails when the pin is dynamically changed in the instantiation or when the pin is floating.
+    # Example: .reset (~n_reset)  or  .testbus ({test0, test1, test2})  or  .floating_pin  (  )
+    # This search will take longer because of this extra step, but, in my opinion, these examples are bad practice.
+    # If you want to logically change an input pin, make an assign statement.
     $pp->open(filename => $nl->resolve_filename($module->name));
+
+    # If the $netName input is a bus, input spaces into the name so that it will be parsed with the regex
+    if ($netName =~ /\{.*\}/) {
+        $netName =~ s/([,}{:\[\]])/\\s\?\\$1\\s\?/g;
+        $netName =~ s/\\s\?\\s\?/\\s\?/g;
+    }
+
     while (defined ( my $line = $pp->getline())) {
-        if ( $line =~ /^\s?((assign((\s$netName)|(\s?\{[^<=]*$netName[^<=]*\}))[\s\[\=])|(.*\([\w\s:]+\)[^<=]*$netName)|([\{]?$netName[\s\[\,\<\=].*[\&\|;])|(\{.*\,\s?$netName[\s\[\}\,]))/ ) {
+        if ( $line =~ /^\s?\.\s?$lastSearch\s?\(\s?$netName\s?\)\s?,?/ ) {
             print "Found definition of $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
             my $returnFile = $nl->resolve_filename($module->name);
             my $returnLine = $pp->lineno();
