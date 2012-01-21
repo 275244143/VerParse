@@ -222,6 +222,7 @@
       (window-edges w1)
       (window-edges module-list)
       (switch-to-buffer-other-window "*verparse module list*")
+      (verilog-mode)
       (insert verparse-list-string)
       ; FIXME: next step is to make these entries clickable
       ;(make-text-button point-min point-max)
