@@ -486,20 +486,22 @@ sub findModule {
     my $foundModule = $nl->find_module($search);
     print "Module name: ", $foundModule->name, "\n" if $Debug;
     my $returnFile  = $nl->resolve_filename($foundModule->name);
-    print "Found file : $returnFile\n" if $Debug;
+    if ($returnFile) {
+        print "Found file : $returnFile\n" if $Debug;
 
-    $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
-                                keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
-                                include_open_nonfatal => 1, # Ignore any include files that do not exist
-                                options             => $opt # Pass all verilog options in order to resolve filenames and defines
-        );
+        $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
+                                    keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
+                                    include_open_nonfatal => 1, # Ignore any include files that do not exist
+                                    options             => $opt # Pass all verilog options in order to resolve filenames and defines
+            );
 
-    $pp->open(filename => $returnFile);
-    while (defined ( my $line = $pp->getline())) {
-        if ( $line =~ /^\s?module\s$search[\s\(\n]/ ) {
-            my $returnLine = $pp->lineno();
-            print "Found declaration of $search in file $returnFile on line $returnLine\n" if $Debug;
-            return ($returnFile, $returnLine);
+        $pp->open(filename => $returnFile);
+        while (defined ( my $line = $pp->getline())) {
+            if ( $line =~ /^\s?module\s$search[\s\(\n]/ ) {
+                my $returnLine = $pp->lineno();
+                print "Found declaration of $search in file $returnFile on line $returnLine\n" if $Debug;
+                return ($returnFile, $returnLine);
+            }
         }
     }
 
@@ -616,14 +618,19 @@ sub returnModuleList {
     print "Return module list command issued:\n" if $Debug;
 
     # Get all of the modules
-    for my $module ($nl->modules) {
+    for my $module ($nl->modules_sorted_level) {
         
         # Get the module filename and line number
-
-        my ($file, $line) = findModule($module->name);
-        print " $file $line\n" if $Debug;
-        my @moduleData = ($module->name, $file, $line);
-        push(@returnData, @moduleData);
+        my $file = '';
+        my $line = '';
+        ($file, $line) = findModule($module->name);
+        if ($file) {
+            print " $file $line\n" if $Debug;
+            #print $module->name, "\n" if $Debug;
+            my @moduleData = ($module->name, $file, $line);
+            #my @moduleData = ($module->name);
+            push(@returnData, @moduleData);
+        }
     }
 
     return @returnData;
