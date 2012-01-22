@@ -201,27 +201,26 @@
    the project's instantiated modules."
   (interactive)
 
-  ; Issue the module_list command
-  (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t module_list")))
-
-  ; Check to make sure there are no errors returned from the verparse script
-  (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
-
-  ; Create the module list
-  ; FIXME: may need to break this into a list, not sure yet...
-  ;(setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
-  (setq verparse-list-string (replace-regexp-in-string "[ ]\\([0-9]+\\)[ ]" " \\1\n" verparse-output-string))
-
   (if (get-buffer-window "*verparse module list*")
       (progn
         (delete-window module-list)
         )
     (progn
-      (setq w1 (selected-window))
-      (setq module-list (split-window w1))
+      ; Issue the module_list command
+      (setq verparse-output-string (shell-command-to-string (concat (executable-find "verparse") " -t module_list")))
+
+      ; Check to make sure there are no errors returned from the verparse script
+      (if (verparse-error-detect verparse-output-string) (error (chomp verparse-output-string)))
+
+      ; Create the module list
+      (setq verparse-list-string (replace-regexp-in-string "[ ][0-9]+[ \n]" "\n" verparse-output-string))
+      
+      ; Split the window horizontally and setup the buffer
+      (setq module-list (selected-window))
+      (setq w1 (split-window module-list verparse-module-list-window-width t))
       (window-edges w1)
       (window-edges module-list)
-      (switch-to-buffer-other-window "*verparse module list*")
+      (switch-to-buffer "*verparse module list*")
       (verilog-mode)
       (delete-region (point-min) (point-max))
       (insert verparse-list-string)
@@ -232,6 +231,17 @@
       ))
 
 )
+
+; Setup verparse options. This piggybacks off of the verilog-mode customization options
+(defgroup verparse-options nil
+  "Customize the verparse Verilog IDE Emacs plugin"
+  :group 'verilog-mode)
+
+; Setup the width of the verparse-toggle-module-list window
+(defcustom verparse-module-list-window-width 40
+  "Set the default width of the *verparse module list* buffer."
+  :group 'verparse-options
+  :type 'integer)
 
 ;; Keybindings for commands, add these to the verilog-mode-map
 ;; used in Emacs verilog-mode
