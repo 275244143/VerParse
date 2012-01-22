@@ -197,8 +197,8 @@
 
 ; Toggle view of a buffer with a clickable list that includes all instantiated modules
 (defun verparse-toggle-module-list ()
-  "Build a clickable list that includes all of
-   the projects instantiated modules."
+  "Builds a clickable list that includes all of
+   the project's instantiated modules."
   (interactive)
 
   ; Issue the module_list command
@@ -223,7 +223,10 @@
       (window-edges module-list)
       (switch-to-buffer-other-window "*verparse module list*")
       (verilog-mode)
+      (delete-region (point-min) (point-max))
       (insert verparse-list-string)
+      (beginning-of-buffer)
+      ; FIXME: add a variable that will ignore regex's for module names. Useful for standard cells, etc.
       ; FIXME: next step is to make these entries clickable
       ;(make-text-button point-min point-max)
       ))
@@ -237,6 +240,7 @@
 (define-key verilog-mode-map "\C-c\C-m" 'verparse-module-search)
 (define-key verilog-mode-map "\C-c\C-d" 'verparse-define-search)
 (define-key verilog-mode-map "\C-c\C-j" 'verparse-go-up-level)
+(define-key verilog-mode-map "\C-c\C-w" 'verparse-toggle-module-list)
 
 ;; Add commands to the Verilog-mode menu
 (easy-menu-add-item verilog-menu
