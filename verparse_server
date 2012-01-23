@@ -121,6 +121,7 @@ while (1) {
 
     # Clear hash to process next client request
     %recDataHash = ();
+    $nl->link();
 }
 
 ######################################################################
@@ -216,12 +217,6 @@ sub buildNetlist {
     $nl->link();
     #$nl->lint();  #This checks for lint warnings on pins. slows it down, may implement later
     $nl->exit_if_error();
-
-    $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
-                                keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
-                                include_open_nonfatal => 1, # Ignore any include files that do not exist
-                                options             => $opt # Pass all verilog options in order to resolve filenames and defines
-                                  );
 
     #print $nl->verilog_text if $Debug; #Print out the verilog code representing the netlist. Could be useful in a major debug
 
@@ -650,11 +645,12 @@ sub returnModuleList {
 
     my @returnData;
     my @moduleData;
+    my $module = '';
 
     print "Return module list command issued:\n" if $Debug;
 
     # Get all top modules
-    for my $module ($nl->top_modules_sorted) {
+    for $module ($nl->top_modules_sorted) {
         my $topLevel = $module->level;
         my $moduleName = $module->name . ' 0';
         my $depthMarker = '*';
@@ -667,26 +663,27 @@ sub returnModuleList {
         push(@returnData, @cellData);
     }
 
-    sub descend_hier {
-        my $module = shift;
-        my $topLevel = shift;
-        my @returnData;
-        my @moduleData;
+    return @returnData;
+}
 
-        for my $cell ($module->cells_sorted) {
-            my $moduleName = $cell->submodname . ' 0';
-            my $level = $cell->submod->level;
+sub descend_hier {
+    my $module = $_[0];
+    my $topLevel = $_[1];
+    my @returnData;
+    my @moduleData;
+    my @cellData;
 
-            my $depthMarker = ('  ' x ($topLevel - $level - 1)).'|-*';
+    for my $cell ($module->cells_sorted) {
+        my $moduleName = $cell->submodname . ' 0';
+        my $level = $cell->submod->level;
 
-            @moduleData = ($depthMarker, $moduleName);
-            push(@returnData, @moduleData);
+        my $depthMarker = ('  ' x ($topLevel - $level - 1)).'|-*';
 
-            my @cellData = descend_hier($cell->submod, $topLevel);
-            push(@returnData, @cellData);
-        }
+        @moduleData = ($depthMarker, $moduleName);
+        push(@returnData, @moduleData);
 
-        return @returnData;
+        @cellData = descend_hier($cell->submod, $topLevel);
+        push(@returnData, @cellData);
     }
 
     return @returnData;
