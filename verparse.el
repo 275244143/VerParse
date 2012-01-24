@@ -25,6 +25,9 @@
 
 ;;; Code:
 
+; Use the button package to setup clickable text
+(require 'button)
+
 ; Setup symbol rings
 (defvar verparse-signal-symbol-ring nil)
 (defvar verparse-module-symbol-ring nil)
@@ -203,7 +206,9 @@
 
   (if (get-buffer-window "*verparse module list*")
       (progn
+        (if verparse-module-list-split-window
         (delete-window module-list)
+        (switch-to-buffer (other-buffer)))
         )
     (progn
       ; Issue the module_list command
@@ -216,10 +221,12 @@
       (setq verparse-list-string (replace-regexp-in-string "[ ][0-9]+[ \n]" "\n" verparse-output-string))
       
       ; Split the window horizontally and setup the buffer
-      (setq module-list (selected-window))
-      (setq w1 (split-window module-list verparse-module-list-window-width t))
-      (window-edges w1)
-      (window-edges module-list)
+      (if verparse-module-list-split-window
+          (progn
+            (setq module-list (selected-window))
+            (setq w1 (split-window module-list verparse-module-list-window-width t))
+            (window-edges w1)
+            (window-edges module-list)))
       (switch-to-buffer "*verparse module list*")
       (verilog-mode)
       (delete-region (point-min) (point-max))
@@ -228,6 +235,8 @@
       ; FIXME: add a variable that will ignore regex's for module names. Useful for standard cells, etc.
       ; FIXME: next step is to make these entries clickable
       ;(make-text-button point-min point-max)
+      ;(insert-button "foo" 'action (lambda (x) (find-file user-init-file)))
+      ;(make-text-button (point) (save-excursion (end-of-line) (point)) 'action (lambda (x) (find-file user-init-file)))
       ))
 
 )
@@ -237,9 +246,25 @@
   "Customize the verparse Verilog IDE Emacs plugin"
   :group 'verilog-mode)
 
+; Choose whether or not to split the window to display the module list
+(defcustom verparse-module-list-split-window nil
+  "If not nil, split the current buffer horizontally to display the
+*verparse module list* window. Otherwise, take the place of the current
+buffer."
+  :group 'verparse-options
+  :type 'boolean)
+(put 'verparse-module-list-split-window 'safe-local-variable 'verparse-booleanp)
+
+(defun verparse-booleanp (value)
+  "Return t if VALUE is boolean.
+This implements GNU Emacs 22.1's `booleanp' function in earlier Emacs.
+This function may be removed when Emacs 21 is no longer supported."
+  (or (equal value t) (equal value nil)))
+
 ; Setup the width of the verparse-toggle-module-list window
 (defcustom verparse-module-list-window-width 40
-  "Set the default width of the *verparse module list* buffer."
+  "If the above option is false, split the window horizontally.
+Set the default width of the *verparse module list* buffer."
   :group 'verparse-options
   :type 'integer)
 
