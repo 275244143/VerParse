@@ -14,7 +14,7 @@ use strict;
 # Set global variables for 'use strict'
 use vars qw ( $Debug $socketFile $socketDir $socket $opt
               $nl $pp $com $recData %recDataHash $sendData
-              @inputArgs
+              @inputArgs @moduleList
 );
 
 # Set global variables
@@ -220,6 +220,49 @@ sub buildNetlist {
 
     #print $nl->verilog_text if $Debug; #Print out the verilog code representing the netlist. Could be useful in a major debug
 
+    # Get all top modules
+    @moduleList = ();
+    for my $module ($nl->top_modules_sorted) {
+        my $topLevel = $module->level;
+        $topLevel = 1;
+        my $moduleName = $module->name . ' 0';
+        my $depthMarker = '*';
+
+        my @moduleData = ($depthMarker, $moduleName);
+
+        # Get each subcell of each top module
+        my @cellData = descend_hier($module, $topLevel);
+        if (@cellData) {
+            push(@moduleList, @moduleData);
+            push(@moduleList, @cellData);
+        }
+    }
+}
+
+sub descend_hier {
+    my $module = $_[0];
+    my $topLevel = $_[1];
+    my $cellLevel = $topLevel + 1;
+    my @returnData;
+    my @moduleData;
+    my @cellData;
+
+    for my $cell ($module->cells_sorted) {
+        my $moduleName = $cell->submodname . ' (' . $cell->name . ') 0';
+        if ($cell->submod) {
+            my $level = $cell->submod->level;
+
+            my $depthMarker = ('  ' x $topLevel).'|-*';
+
+            @moduleData = ($depthMarker, $moduleName);
+            push(@returnData, @moduleData);
+
+            @cellData = descend_hier($cell->submod, $cellLevel);
+            push(@returnData, @cellData);
+        }
+    }
+
+    return @returnData;
 }
 
 ######################################################################
@@ -514,23 +557,25 @@ sub findModule {
 
     #Parse the Verilog::Netlist object for the file and line number of the module declaration
     my $foundModule = $nl->find_module($search);
-    print "Module name: ", $foundModule->name, "\n" if $Debug;
-    my $returnFile  = $nl->resolve_filename($foundModule->name);
-    if ($returnFile) {
-        print "Found file : $returnFile\n" if $Debug;
+    if ($foundModule) {
+        print "Module name: ", $foundModule->name, "\n" if $Debug;
+        my $returnFile  = $nl->resolve_filename($foundModule->name);
+        if ($returnFile) {
+            print "Found file : $returnFile\n" if $Debug;
 
-        $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
-                                    keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
-                                    include_open_nonfatal => 1, # Ignore any include files that do not exist
-                                    options             => $opt # Pass all verilog options in order to resolve filenames and defines
-            );
+            $pp = Verilog::Preproc->new(keep_comments         => 0, # Remove all comments
+                                        keep_whitespace       => 0, # Convert all whitespace to either a newline or single space
+                                        include_open_nonfatal => 1, # Ignore any include files that do not exist
+                                        options             => $opt # Pass all verilog options in order to resolve filenames and defines
+                );
 
-        $pp->open(filename => $returnFile);
-        while (defined ( my $line = $pp->getline())) {
-            if ( $line =~ /^\s?module\s$search[\s\(\n]/ ) {
-                my $returnLine = $pp->lineno();
-                print "Found declaration of $search in file $returnFile on line $returnLine\n" if $Debug;
-                return ($returnFile, $returnLine);
+            $pp->open(filename => $returnFile);
+            while (defined ( my $line = $pp->getline())) {
+                if ( $line =~ /^\s?module\s$search[\s\(\n]/ ) {
+                    my $returnLine = $pp->lineno();
+                    print "Found declaration of $search in file $returnFile on line $returnLine\n" if $Debug;
+                    return ($returnFile, $returnLine);
+                }
             }
         }
     }
@@ -639,54 +684,15 @@ sub upLevel {
 ######################################################################
 
 # Return a list of all the module names along with the file and line
-# number in which they are instantiated
+# number in which they are instantiated. For speed, this list is built every
+# time the verparse_server is refreshed or when it is started.
+# See the buildNetlist subroutine to see how the @moduleList array is built.
 
 sub returnModuleList {
 
-    my @returnData;
-    my @moduleData;
-    my $module = '';
-
     print "Return module list command issued:\n" if $Debug;
 
-    # Get all top modules
-    for $module ($nl->top_modules_sorted) {
-        my $topLevel = $module->level;
-        my $moduleName = $module->name . ' 0';
-        my $depthMarker = '*';
-
-        @moduleData = ($depthMarker, $moduleName);
-        push(@returnData, @moduleData);
-
-        # Get each subcell of each top module
-        my @cellData = descend_hier($module, $topLevel);
-        push(@returnData, @cellData);
-    }
-
-    return @returnData;
-}
-
-sub descend_hier {
-    my $module = $_[0];
-    my $topLevel = $_[1];
-    my @returnData;
-    my @moduleData;
-    my @cellData;
-
-    for my $cell ($module->cells_sorted) {
-        my $moduleName = $cell->submodname . ' 0';
-        my $level = $cell->submod->level;
-
-        my $depthMarker = ('  ' x ($topLevel - $level - 1)).'|-*';
-
-        @moduleData = ($depthMarker, $moduleName);
-        push(@returnData, @moduleData);
-
-        @cellData = descend_hier($cell->submod, $topLevel);
-        push(@returnData, @cellData);
-    }
-
-    return @returnData;
+    return @moduleList;
 }
 
 ######################################################################
