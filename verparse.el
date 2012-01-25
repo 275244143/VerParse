@@ -192,7 +192,7 @@
   "Return symbol around current point as a string."
   (save-excursion
     (buffer-substring (progn
-			(skip-chars-backward " \t")
+			;(skip-chars-backward " \t") ; This is from verilog-mode, so it may be needed in the future for proper searching
 			(skip-chars-backward "a-zA-Z0-9_")
 			(point))
 		      (progn
@@ -233,6 +233,7 @@
       (delete-region (point-min) (point-max))
       (insert verparse-list-string)
       (beginning-of-buffer)
+      (setq buffer-read-only t)
       ; FIXME: add a variable that will ignore regex's for module names. Useful for standard cells, etc.
       ; FIXME: next step is to make these entries clickable
       ;(make-text-button point-min point-max)
