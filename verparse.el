@@ -121,7 +121,8 @@
     (progn
       (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
       (find-file (car verparse-output-list))
-      (goto-line (string-to-number (nth 1 verparse-output-list)))))
+      (if (= (point) (point-min))
+      (goto-line (string-to-number (nth 1 verparse-output-list))))))
   )
 
 ; Run a define value search
