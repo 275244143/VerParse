@@ -222,8 +222,13 @@
       (insert verparse-list-string)
       (beginning-of-buffer)
       (setq buffer-read-only t)
-      (local-set-key (kbd "<down>") 'verparse-module-list-next)
-      (local-set-key (kbd "<up>") 'verparse-module-list-prev)
+      ;FIXME: Need to figure out how to map these to only this buffer
+      ;(setq verparse-map (current-local-map))
+      ;(local-set-key (kbd "<down>") 'verparse-module-list-next)
+      ;(local-set-key (kbd "<up>") 'verparse-module-list-prev)
+      ;(define-key verparse-map (kbd "<down>") 'verparse-module-list-next)
+      ;(define-key verparse-map (kbd "<up>") 'verparse-module-list-prev)
+      ;(use-local-map verparse-map)
       ; FIXME: add a variable that will ignore regex's for module names. Useful for standard cells, etc.
       ; FIXME: next step is to make these entries clickable
       ;(make-text-button point-min point-max)
