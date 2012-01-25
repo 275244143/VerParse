@@ -187,18 +187,6 @@
   ; Send message to minibuffer
   (message (concat "Refreshed verparse_server running in " (getenv "VERPARSE_SOCKET"))))
 
-; Pull the verilog symbol from word under point
-(defun verparse-get-default-symbol ()
-  "Return symbol around current point as a string."
-  (save-excursion
-    (buffer-substring (progn
-			;(skip-chars-backward " \t") ; This is from verilog-mode, so it may be needed in the future for proper searching
-			(skip-chars-backward "a-zA-Z0-9_")
-			(point))
-		      (progn
-			(skip-chars-forward "a-zA-Z0-9_")
-			(point)))))
-
 ; Toggle view of a buffer with a clickable list that includes all instantiated modules
 (defun verparse-toggle-module-list ()
   "Builds a clickable list that includes all of
@@ -234,6 +222,8 @@
       (insert verparse-list-string)
       (beginning-of-buffer)
       (setq buffer-read-only t)
+      (local-set-key (kbd "<down>") 'verparse-module-list-next)
+      (local-set-key (kbd "<up>") 'verparse-module-list-prev)
       ; FIXME: add a variable that will ignore regex's for module names. Useful for standard cells, etc.
       ; FIXME: next step is to make these entries clickable
       ;(make-text-button point-min point-max)
@@ -242,6 +232,40 @@
       ))
 
 )
+
+; Go to the module declared on the next line down
+(defun verparse-module-list-next ()
+  "Binds to the <down> key in the *verparse module list* buffer. This moves point to the beginning of the module name on the next line."
+  (interactive)
+  (forward-line)
+  (skip-chars-forward "^a-zA-Z0-9_")
+;  (put-text-property (point)
+;                     (save-excursion
+;                       (skip-chars-forward "a-zA-Z0-9_")
+;                       (point))
+;                     'mouse-face 'highlight)
+)
+
+; Move point to the module declared on the next line up
+(defun verparse-module-list-prev ()
+  "Binds to the <up> key in the *verparse module list* buffer. This moves point to the beginning of the module name on the previous line."
+  (interactive)
+  (forward-line -1)
+  (skip-chars-forward "^a-zA-Z0-9_")
+)
+
+
+; Pull the verilog symbol from word under point
+(defun verparse-get-default-symbol ()
+  "Return symbol around current point as a string."
+  (save-excursion
+    (buffer-substring (progn
+			;(skip-chars-backward " \t") ; This is from verilog-mode, so it may be needed in the future for proper searching
+			(skip-chars-backward "a-zA-Z0-9_")
+			(point))
+		      (progn
+			(skip-chars-forward "a-zA-Z0-9_")
+			(point)))))
 
 ; Setup verparse options. This piggybacks off of the verilog-mode customization options
 (defgroup verparse-options nil
