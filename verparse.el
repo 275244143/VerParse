@@ -216,19 +216,24 @@
             (setq w1 (split-window module-list verparse-module-list-window-width t))
             (window-edges w1)
             (window-edges module-list)))
-      (switch-to-buffer "*verparse module list*")
-      (verilog-mode)
-      (delete-region (point-min) (point-max))
-      (insert verparse-list-string)
-      (beginning-of-buffer)
-      (setq buffer-read-only t)
-      ;FIXME: Need to figure out how to map these to only this buffer
-      ;(setq verparse-map (current-local-map))
-      ;(local-set-key (kbd "<down>") 'verparse-module-list-next)
-      ;(local-set-key (kbd "<up>") 'verparse-module-list-prev)
-      ;(define-key verparse-map (kbd "<down>") 'verparse-module-list-next)
-      ;(define-key verparse-map (kbd "<up>") 'verparse-module-list-prev)
-      ;(use-local-map verparse-map)
+
+      ; Check to see if the *verparse module list* buffer exists, if not create it
+      (if (not (get-buffer "*verparse module list*"))
+          (progn
+            (switch-to-buffer "*verparse module list*")
+            (verilog-mode)
+            (delete-region (point-min) (point-max))
+            (insert verparse-list-string)
+            (beginning-of-buffer)
+            (setq buffer-read-only t)
+            (setq verparse-map (make-sparse-keymap))
+            (use-local-map verparse-map)
+            (local-set-key (kbd "<down>") 'verparse-module-list-next)
+            (local-set-key (kbd "<up>") 'verparse-module-list-prev)
+            (local-set-key (kbd "<return>") 'verparse-module-search)
+            (local-set-key "\C-c\C-m" 'verparse-module-search)
+            (local-set-key "\C-c\C-w" 'verparse-toggle-module-list))
+        (switch-to-buffer "*verparse module list*"))
       ; FIXME: add a variable that will ignore regex's for module names. Useful for standard cells, etc.
       ; FIXME: next step is to make these entries clickable
       ;(make-text-button point-min point-max)
