@@ -250,6 +250,7 @@ sent. Also, if the buffer is killed."
   (local-set-key (kbd "<return>") 'verparse-module-search-no-prompt)
   (local-set-key "\C-c\C-m" 'verparse-module-search-no-prompt)
   (local-set-key "\C-c\C-w" 'verparse-toggle-module-list)
+  (local-set-key [mouse-1] 'verparse-module-mouse-open)
 
   ; Set the mouse-face to highlight on all modules
   (save-excursion
@@ -265,6 +266,15 @@ sent. Also, if the buffer is killed."
   ; Make the buffer read only
   (setq buffer-read-only t)
 
+)
+
+; Make the text clickable in the verparse module list buffer
+(defun verparse-module-mouse-open (event)
+  "In the *verparse module list* buffer, a click on a module will open the file"
+  (interactive "e")
+
+  (if (get-text-property (posn-point (event-end event)) 'mouse-face)
+      (verparse-module-search t))
 )
 
 ; Needed to create a verparse-module-search command with the optional parameter for the keymap
