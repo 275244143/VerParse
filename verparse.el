@@ -98,12 +98,14 @@
   (message "Sorry! Not yet implemented"))
 
 ; Run a module definition search
-(defun verparse-module-search ()
+(defun verparse-module-search (&optional with-params)
   "Issue a module search using the external verparse perl script and open the
    returned file in a new buffer and move point to the returned line number"
   (interactive)
   ; Create an interactive prompt
+  (if (not with-params)
   (setq verparse-search-string (read-from-minibuffer "Goto module definition: " (verparse-get-default-symbol) nil nil 'verparse-module-symbol-ring))
+  (setq verparse-search-string (verparse-get-default-symbol)))
   (cons verparse-search-string verparse-module-symbol-ring)
   
   ; Issue the verparse command
@@ -219,29 +221,58 @@
 
       ; Check to see if the *verparse module list* buffer exists, if not create it
       (if (not (get-buffer "*verparse module list*"))
-          (progn
-            (switch-to-buffer "*verparse module list*")
-            (verilog-mode)
-            (delete-region (point-min) (point-max))
-            (insert verparse-list-string)
-            (beginning-of-buffer)
-            (setq buffer-read-only t)
-            (setq verparse-map (make-sparse-keymap))
-            (use-local-map verparse-map)
-            (local-set-key (kbd "<down>") 'verparse-module-list-next)
-            (local-set-key (kbd "<up>") 'verparse-module-list-prev)
-            (local-set-key (kbd "<return>") 'verparse-module-search)
-            (local-set-key "\C-c\C-m" 'verparse-module-search)
-            (local-set-key "\C-c\C-w" 'verparse-toggle-module-list))
+          (verparse-setup-module-list-buffer)
         (switch-to-buffer "*verparse module list*"))
-      ; FIXME: add a variable that will ignore regex's for module names. Useful for standard cells, etc.
-      ; FIXME: next step is to make these entries clickable
-      ;(make-text-button point-min point-max)
-      ;(insert-button "foo" 'action (lambda (x) (find-file user-init-file)))
-      ;(make-text-button (point) (save-excursion (end-of-line) (point)) 'action (lambda (x) (find-file user-init-file)))
       ))
+)
+
+(defun verparse-setup-module-list-buffer ()
+  "Setup the *verparse module list* buffer. This is run each time the verparse_server refresh command is
+sent. Also, if the buffer is killed."
+  ; Create the buffer if it doesn't exist
+  (interactive)
+  (switch-to-buffer "*verparse module list*")
+
+  ; Set the major mode for the buffer
+  (verilog-mode)
+
+  ; Delete any existing text, insert text, and move point to the beginning
+  (delete-region (point-min) (point-max))
+  (insert verparse-list-string)
+  (beginning-of-buffer)
+  (skip-chars-forward "^a-zA-Z0-9_")
+
+  ; Setup the local keymap
+  (setq verparse-map (make-sparse-keymap))
+  (use-local-map verparse-map)
+  (local-set-key (kbd "<down>") 'verparse-module-list-next)
+  (local-set-key (kbd "<up>") 'verparse-module-list-prev)
+  (local-set-key (kbd "<return>") 'verparse-module-search-no-prompt)
+  (local-set-key "\C-c\C-m" 'verparse-module-search-no-prompt)
+  (local-set-key "\C-c\C-w" 'verparse-toggle-module-list)
+
+  ; Set the mouse-face to highlight on all modules
+  (save-excursion
+    (loop do (progn
+               (skip-chars-forward "^a-zA-Z0-9_")
+               (put-text-property (point)
+                                  (save-excursion
+                                    (skip-chars-forward "a-zA-Z0-9_")
+                                    (point))
+                                  'mouse-face 'highlight))
+          until (eobp) do (forward-line)))
+
+  ; Make the buffer read only
+  (setq buffer-read-only t)
 
 )
+
+; Needed to create a verparse-module-search command with the optional parameter for the keymap
+(defun verparse-module-search-no-prompt ()
+  "Run the verparse-module-search command with no prompt in the minibuffer.
+This is used for the bindkeys in the *verparse module list* window"
+  (interactive)
+  (verparse-module-search t))
 
 ; Go to the module declared on the next line down
 (defun verparse-module-list-next ()
@@ -249,11 +280,6 @@
   (interactive)
   (forward-line)
   (skip-chars-forward "^a-zA-Z0-9_")
-;  (put-text-property (point)
-;                     (save-excursion
-;                       (skip-chars-forward "a-zA-Z0-9_")
-;                       (point))
-;                     'mouse-face 'highlight)
 )
 
 ; Move point to the module declared on the next line up
