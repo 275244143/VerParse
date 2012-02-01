@@ -3,6 +3,7 @@
 # Copyright information contained at the end of the file
 
 # Import Modules
+use POSIX qw(setsid);
 use Getopt::Long;
 use Pod::Usage;
 use Verilog::Netlist;
@@ -29,10 +30,15 @@ die "ERROR: The VERPARSE_SOCKET environment variable isn't set! Exitting..." unl
 $socketFile = "$socketDir/socket";
 
 # Prevent an INT signal (CTRL-C) from killing the program without removing the socket file
-$SIG{INT} = \&interrupt_handler;
+foreach my $signal (keys %SIG) {
+    $SIG{$signal} = \&interrupt_handler;
+}
 
 # Setup communication port
 createSocket();
+
+# Daemonize the process
+daemonize();
 
 print "Using UNIX domain socket $socketFile\n";
 
@@ -138,6 +144,21 @@ sub interrupt_handler {
 
 ######################################################################
 
+# Run verparse_server as a daemon
+
+sub daemonize {
+    chdir './' or die "Can't chdir to /: $!";
+    umask 0;
+    open STDIN, '/dev/null' or die "Can't write to /dev/null: $!";
+    open STDOUT, ">$socketDir/verparse_server.log" or die "Can't write to $socketDir/verparse_server.log: $!";
+    open STDERR, ">$socketDir/verparse_server.err" or die "Can't write to $socketDir/verparse_server.err: $!";
+    defined(my $pid = fork)   or die "Can't fork: $!";
+    exit if $pid;
+    setsid                    or die "Can't start a new session: $!";
+}
+
+######################################################################
+
 # Display POD
 
 sub usage {
@@ -160,16 +181,14 @@ sub debug {
 sub createSocket {
     
     # Check and see if the UNIX domain socket file exists, if not, create one
-    unless (-S $socketFile) {
-        $socket = IO::Socket::UNIX->new(Local     => $socketFile,
-                                        Type      => SOCK_STREAM,
-                                        Listen    => SOMAXCONN
-                                       ) or die ( "Can't create server socket: $!\n");
-        
-    } else {
-        print "Server already running...\n";
-        exit (1);
+    if (-S $socketFile) {
+        exit(1);
     }
+
+    $socket = IO::Socket::UNIX->new(Local     => $socketFile,
+                                    Type      => SOCK_STREAM,
+                                    Listen    => SOMAXCONN
+                                   ) or die ( "Can't create server socket: $!\n");
 }
 
 ######################################################################

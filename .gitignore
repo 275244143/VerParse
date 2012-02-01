@@ -1,3 +1,5 @@
 verilog/
 Verilog-Perl-3.312/
 .nfs*
+*.log
+*.err
