@@ -24,15 +24,18 @@ $Debug = 0;
 @inputArgs = @ARGV;
 $socketDir = $ENV{'VERPARSE_SOCKET'};
 
+# Display help if it the option is called
+GetOptions ("help"    => \&usage);
+
 # See if the $sockedDir environment variable has been set, if not, exit
 die "ERROR: The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
 
 $socketFile = "$socketDir/socket";
 
 # Prevent an INT signal (CTRL-C) from killing the program without removing the socket file
-foreach my $signal (keys %SIG) {
-    $SIG{$signal} = \&interrupt_handler;
-}
+#foreach my $signal (keys %SIG) {
+#    $SIG{$signal} = \&interrupt_handler;
+#}
 
 # Setup communication port
 createSocket();
@@ -181,7 +184,9 @@ sub debug {
 sub createSocket {
     
     # Check and see if the UNIX domain socket file exists, if not, create one
-    if (-S $socketFile) {
+    if (-S $socketFile){
+        print "Server already running. Please delete $socketFile and kill the running server.
+Execute the command 'ps ax | grep verparse_server' to see running verparse_servers\n";
         exit(1);
     }
 
@@ -205,7 +210,6 @@ sub buildNetlist {
     @ARGV = $opt->parameter(@inputArgs);
 
     if (! GetOptions (
-              "help"    => \&usage,
               "debug"   => \&debug,
               "<>"      => \&parameter,
         )) {
