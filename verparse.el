@@ -1,14 +1,18 @@
 ;; verparse.el
 ;;
 ;; Author: Chuck McClish (charles.mcclish@microchip.com)
-;; This file should be loaded in your .emacs file when you load a verilog file
+;; This file should be loaded in your .emacs file before verilog-mode when a verilog
+;; file is loaded. This requires verilog-mode because it piggy backs on functions
+;; and menus. Note: this has not been tested on Emacs versions prior to 23.2.
 ;;
 ;; It issues the verparse script with the necessary arguments and returns the data
 ;; in the form of opening the returned file and moving the cursor to point or (in
 ;; the case of multi-line outputs) returns the multiple outputs to an interactive
 ;; buffer
 
-;; This file is part of GNU Emacs.
+;; This file is hosted on github. You can clone a full copy of verparse and this
+;; file from here:
+;; git clone http://github.com/zettawatt/VerParse.git
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
