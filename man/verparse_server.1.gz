@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VERPARSE_SERVER 1"
-.TH VERPARSE_SERVER 1 "2012-01-10" "perl v5.10.1" "User Contributed Perl Documentation"
+.TH VERPARSE_SERVER 1 "2012-02-06" "perl v5.10.1" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -143,6 +143,55 @@ client program (see verparse)
 verparse_server uses the Verilog::Netlist perl module to build a netlist of the project.
 It also sets up a \s-1UNIX\s0 domain socket in order to process search requests from the client
 program verparse. See the verparse manpage for a description of commands.
+.SH "SETUP"
+.IX Header "SETUP"
+There are several steps to setup verparse_server. First, make sure the script is in your \s-1PATH\s0.
+Second, set the \s-1VERPARSE_SOCKET\s0 environment variable to point to a writable directory that
+will contain the Unix domain socket and verparse_server log files. Then run verparse_server
+with all of the files to be utilized in the project.
+.PP
+For a detailed setup example, clone the project from the hosting git repository located here:
+.PP
+<http://github.com/zettawatt/VerParse.git>
+.PP
+.Vb 1
+\&   git clone http://github.com/zettawatt/VerParse.git
+.Ve
+.PP
+Note: you must have a git version greater than 1.7 for this to work.
+.PP
+After you clone the repo, add the VerParse directory to your \s-1PATH\s0. Then set the \s-1VERPARSE_SOCKET\s0
+environment variable to the VerParse directory. Now you are ready to run verparse_server:
+.PP
+.Vb 1
+\&   verparse_server \-f verilog/files.f
+.Ve
+.PP
+Now verparse_server is running as a daemon in the background. You will see a Unix domain socket
+as a file called 'socket=' in the VerParse directory. For proof that the server is running, run:
+.PP
+.Vb 1
+\&   ps ax | grep verparse_server
+.Ve
+.PP
+Note: There is no way currently to kill verparse_server unless you manually kill it. So if you want
+to kill verparse_server, run the above command and execute 'kill \s-1PID\s0' where \s-1PID\s0 is the process \s-1ID\s0.
+.PP
+Now that verparse_server is running setup Emacs to use the verparse.el lisp file. Put this in your
+\&.emacs file:
+.PP
+.Vb 1
+\&   (load\-library "/path/to/VerParse/verparse.el")
+.Ve
+.PP
+Note: This has only been tested on Emacs version 23.2 and above, older versions may not work.
+Also, note that Emacs verilog-mode must be running before verparse.el because it piggybacks
+on this major mode's functions and menus.
+.PP
+Now open the verilog/top.v file in Emacs. If all went well, you will be able to type the key
+sequence 'C\-c C\-w' to toggle a graphical representation of your project's hierarchy. If you notice,
+there is a verilog menu in the toolbar with a verparse submenu. All of the commands available are
+in that list.
 .SH "VERILOG ARGUMENTS"
 .IX Header "VERILOG ARGUMENTS"
 The following arguments are compatible with \s-1GCC\s0, \s-1VCS\s0 and most Verilog
