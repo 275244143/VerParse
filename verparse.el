@@ -29,13 +29,36 @@
 
 ;;; Code:
 
-; Use the button package to setup clickable text
-(require 'button)
+; Define variables
+(defvar verparse-signal-symbol-ring nil
+"List that includes all signals previously searched")
 
-; Setup symbol rings
-(defvar verparse-signal-symbol-ring nil)
-(defvar verparse-module-symbol-ring nil)
-(defvar verparse-define-symbol-ring nil)
+(defvar verparse-module-symbol-ring nil
+"List that includes all modules previously searched")
+
+(defvar verparse-define-symbol-ring nil
+"List that includes all defines previously searched")
+
+(defvar match-string nil)
+
+(defvar verparse-string-to-check-list nil)
+
+(defvar verparse-search-string nil
+"String to pass to the verparse_server")
+
+(defvar verparse-output-string nil
+"Output from the verparse script")
+
+(defvar verparse-output-list nil)
+
+(defvar verparse-list-string nil)
+
+(defvar verparse-map nil
+"Keymap for the *verparse module list* buffer")
+
+(defvar module-list nil)
+
+(defvar w1 nil)
 
 ; Remove new line from string if it exists
 (defun chomp(string)
@@ -77,8 +100,7 @@
   (progn
     (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
     (find-file (car verparse-output-list))
-    (goto-line (string-to-number (nth 1 verparse-output-list)))))
-  )
+    (goto-line (string-to-number (nth 1 verparse-output-list))))))
 
 ; Run a signal trace
 (defun verparse-signal-trace ()
@@ -128,8 +150,7 @@
       (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
       (find-file (car verparse-output-list))
       (if (= (point) (point-min))
-      (goto-line (string-to-number (nth 1 verparse-output-list))))))
-  )
+      (goto-line (string-to-number (nth 1 verparse-output-list)))))))
 
 ; Run a define value search
 (defun verparse-define-search ()
@@ -154,8 +175,7 @@
   ; Return the searched define value
   (progn
     (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
-    (message (concat "Value of define '" verparse-search-string "': " (car verparse-output-list)))))
-  )
+    (message (concat "Value of define '" verparse-search-string "': " (car verparse-output-list))))))
 
 ; Go up one level of hierarchy
 (defun verparse-go-up-level ()
@@ -176,8 +196,7 @@
     (progn
       (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
       (find-file (car verparse-output-list))
-      (goto-line (string-to-number (nth 1 verparse-output-list)))))
-  )
+      (goto-line (string-to-number (nth 1 verparse-output-list))))))
 
 (defun verparse-rebuild-netlist ()
   "Send the 'refresh' command to the verparse_server to rebuild the netlist object
@@ -226,9 +245,7 @@
       ; Check to see if the *verparse module list* buffer exists, if not create it
       (if (not (get-buffer "*verparse module list*"))
           (verparse-setup-module-list-buffer)
-        (switch-to-buffer "*verparse module list*"))
-      ))
-)
+        (switch-to-buffer "*verparse module list*")))))
 
 (defun verparse-setup-module-list-buffer ()
   "Setup the *verparse module list* buffer. This is run each time the verparse_server refresh command is
@@ -268,9 +285,7 @@ sent. Also, if the buffer is killed."
           until (eobp) do (forward-line)))
 
   ; Make the buffer read only
-  (setq buffer-read-only t)
-
-)
+  (setq buffer-read-only t))
 
 ; Make the text clickable in the verparse module list buffer
 (defun verparse-module-mouse-open (event)
@@ -278,8 +293,7 @@ sent. Also, if the buffer is killed."
   (interactive "e")
 
   (if (get-text-property (posn-point (event-end event)) 'mouse-face)
-      (verparse-module-search t))
-)
+      (verparse-module-search t)))
 
 ; Needed to create a verparse-module-search command with the optional parameter for the keymap
 (defun verparse-module-search-no-prompt ()
@@ -293,16 +307,14 @@ This is used for the bindkeys in the *verparse module list* window"
   "Binds to the <down> key in the *verparse module list* buffer. This moves point to the beginning of the module name on the next line."
   (interactive)
   (forward-line)
-  (skip-chars-forward "^a-zA-Z0-9_")
-)
+  (skip-chars-forward "^a-zA-Z0-9_"))
 
 ; Move point to the module declared on the next line up
 (defun verparse-module-list-prev ()
   "Binds to the <up> key in the *verparse module list* buffer. This moves point to the beginning of the module name on the previous line."
   (interactive)
   (forward-line -1)
-  (skip-chars-forward "^a-zA-Z0-9_")
-)
+  (skip-chars-forward "^a-zA-Z0-9_"))
 
 
 ; Pull the verilog symbol from word under point
