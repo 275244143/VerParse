@@ -15,10 +15,11 @@ use strict;
 # Set global variables for 'use strict'
 use vars qw ( $Debug $socketFile $socketDir $socket $opt
               $nl $pp $com $recData %recDataHash $sendData
-              @inputArgs @moduleList
+              @inputArgs @moduleList $nonDaemon
 );
 
 # Set global variables
+$nonDaemon = 0;
 $Debug = 0;
 %recDataHash = ();
 @inputArgs = @ARGV;
@@ -27,8 +28,9 @@ $socketDir = $ENV{'VERPARSE_SOCKET'};
 # Display help if it the option is called
 $opt = new Verilog::Getopt();
 @ARGV = $opt->parameter(@inputArgs);
-GetOptions ("help"    => \&usage,
-            "debug"   => \&debug
+GetOptions ("help"      => \&usage,
+            "debug"     => \&debug,
+            "no_daemon" => \&noDaemon
            );
 
 # See if the $sockedDir environment variable has been set, if not, exit
@@ -40,12 +42,15 @@ $socketFile = "$socketDir/socket";
 #foreach my $signal (keys %SIG) {
 #    $SIG{$signal} = \&interrupt_handler;
 #}
+$SIG{INT} = \&interrupt_handler;
 
 # Setup communication port
 createSocket();
 
 # Daemonize the process
-daemonize();
+unless ($nonDaemon) {
+    daemonize();
+}
 
 print "Using UNIX domain socket $socketFile\n";
 
@@ -154,11 +159,11 @@ sub interrupt_handler {
 # Run verparse_server as a daemon
 
 sub daemonize {
-    chdir './' or die "Can't chdir to /: $!";
+    chdir './' or die "Can't chdir to ./: $!";
     umask 0;
     open STDIN, '/dev/null' or die "Can't write to /dev/null: $!";
     open STDOUT, ">$socketDir/verparse_server.log" or die "Can't write to $socketDir/verparse_server.log: $!";
-    open STDERR, ">$socketDir/verparse_server.err" or die "Can't write to $socketDir/verparse_server.err: $!";
+    open STDERR, ">>$socketDir/verparse_server.log" or die "Can't write to $socketDir/verparse_server.err: $!";
     defined(my $pid = fork)   or die "Can't fork: $!";
     exit if $pid;
     setsid                    or die "Can't start a new session: $!";
@@ -179,6 +184,14 @@ sub usage {
 
 sub debug {
     $Debug = 1;
+}
+
+######################################################################
+
+# Disable running in a daemon. Run in current terminal window
+
+sub noDaemon {
+    $nonDaemon = 1;
 }
 
 ######################################################################
@@ -213,8 +226,9 @@ sub buildNetlist {
     @ARGV = $opt->parameter(@inputArgs);
 
     if (! GetOptions (
-              "debug"   => \&debug,
-              "<>"      => \&parameter,
+              "debug"     => \&debug,
+              "no_daemon" => \&noDaemon,
+              "<>"        => \&parameter,
         )) {
         die "ERROR: Bad usage, try 'verparse_server --help'\n";
     }
@@ -749,7 +763,7 @@ program L<verparse>. See the verparse manpage for a description of commands.
 
 There are several steps to setup verparse_server. First, make sure the script is in your PATH.
 Second, set the VERPARSE_SOCKET environment variable to point to a writable directory that
-will contain the Unix domain socket and verparse_server log files. Then run verparse_server
+will contain the Unix domain socket and verparse_server.log file. Then run verparse_server
 with all of the files to be utilized in the project.
 
 For a detailed setup example, clone the project from the hosting git repository located here:
@@ -758,20 +772,19 @@ L<http://github.com/zettawatt/VerParse.git>
 
    git clone http://github.com/zettawatt/VerParse.git
 
-Note: you must have a git version greater than 1.7 for this to work.
+Note: you must have a git version greater than 1.7 for this to work. Otherwise go to github
+and search for 'verparse' which will take you to the page. From there you can download a zip
+of the project.
 
 After you clone the repo, add the VerParse directory to your PATH. Then set the VERPARSE_SOCKET
 environment variable to the VerParse directory. Now you are ready to run verparse_server:
 
-   verparse_server -f verilog/files.f
+   verparse_server -f verilog/files.f --debug --no_daemon
 
-Now verparse_server is running as a daemon in the background. You will see a Unix domain socket
-as a file called 'socket=' in the VerParse directory. For proof that the server is running, run:
-
-   ps ax | grep verparse_server
-
-Note: There is no way currently to kill verparse_server unless you manually kill it. So if you want
-to kill verparse_server, run the above command and execute 'kill PID' where PID is the process ID.
+Now verparse_server is running in the current terminal window. The '--no_daemon option prevents
+verparse_server from running as a daemon so you can see the output. The '--debug' option will
+display a verbose message of what the server is doing when you send requests from Emacs. You will
+see a Unix domain socket as a file called 'socket=' in the VerParse directory.
 
 Now that verparse_server is running setup Emacs to use the verparse.el lisp file. Put this in your
 .emacs file:
@@ -839,6 +852,12 @@ Displays this message and exits
 =item --debug
 
 Displays useful debug information about server processes
+
+=item --no_daemon
+
+This allows the verparse_server to run in the current terminal window. This is
+very useful when in debug mode to see problems as they occur. It also is not always
+convenient to run verparse_server as a daemon.
 
 =back
 
