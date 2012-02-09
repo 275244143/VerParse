@@ -27,7 +27,9 @@ $socketDir = $ENV{'VERPARSE_SOCKET'};
 # Display help if it the option is called
 $opt = new Verilog::Getopt();
 @ARGV = $opt->parameter(@inputArgs);
-GetOptions ("help"    => \&usage);
+GetOptions ("help"    => \&usage,
+            "debug"   => \&debug
+           );
 
 # See if the $sockedDir environment variable has been set, if not, exit
 die "ERROR: The VERPARSE_SOCKET environment variable isn't set! Exitting..." unless $socketDir;
@@ -207,6 +209,7 @@ sub buildNetlist {
     $nl->delete if $nl;
 
     # Get command line options
+    $opt = new Verilog::Getopt();
     @ARGV = $opt->parameter(@inputArgs);
 
     if (! GetOptions (
