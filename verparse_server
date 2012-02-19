@@ -15,7 +15,7 @@ use strict;
 # Set global variables for 'use strict'
 use vars qw ( $Debug $socketFile $socketDir $socket $opt
               $nl $pp $com $recData %recDataHash $sendData
-              @inputArgs @moduleList $nonDaemon
+              @inputArgs @moduleList $nonDaemon $logFile
 );
 
 # Set global variables
@@ -24,12 +24,14 @@ $Debug = 0;
 %recDataHash = ();
 @inputArgs = @ARGV;
 $socketDir = $ENV{'VERPARSE_SOCKET'};
+$logFile   = "$socketDir/verparse_server.log";
 
 # Display help if it the option is called
 $opt = new Verilog::Getopt();
 @ARGV = $opt->parameter(@inputArgs);
 GetOptions ("help"      => \&usage,
             "debug"     => \&debug,
+            "log=s"     => \$logFile,
             "no_daemon" => \&noDaemon
            );
 
@@ -162,8 +164,8 @@ sub daemonize {
     chdir './' or die "Can't chdir to ./: $!";
     umask 0;
     open STDIN, '/dev/null' or die "Can't write to /dev/null: $!";
-    open STDOUT, ">$socketDir/verparse_server.log" or die "Can't write to $socketDir/verparse_server.log: $!";
-    open STDERR, ">>$socketDir/verparse_server.log" or die "Can't write to $socketDir/verparse_server.err: $!";
+    open STDOUT,  ">$logFile" or die "Can't write to $logFile: $!";
+    open STDERR, ">>$logFile" or die "Can't write to $logFile: $!";
     defined(my $pid = fork)   or die "Can't fork: $!";
     exit if $pid;
     setsid                    or die "Can't start a new session: $!";
@@ -228,6 +230,7 @@ sub buildNetlist {
     if (! GetOptions (
               "debug"     => \&debug,
               "no_daemon" => \&noDaemon,
+              "log=s"     => \$logFile,
               "<>"        => \&parameter,
         )) {
         die "ERROR: Bad usage, try 'verparse_server --help'\n";
@@ -858,6 +861,12 @@ Displays useful debug information about server processes
 This allows the verparse_server to run in the current terminal window. This is
 very useful when in debug mode to see problems as they occur. It also is not always
 convenient to run verparse_server as a daemon.
+
+=item --log path/to/logFile
+
+When running as a daemon, this specifies where to write the log file. This will contain
+all output from the verparse_server. Without this option, the default will be to
+create a file called verparse_server.log in the directory where the socket exists.
 
 =back
 
