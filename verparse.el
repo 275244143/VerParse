@@ -100,7 +100,9 @@
   (progn
     (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
     (find-file (car verparse-output-list))
-    (goto-line (string-to-number (nth 1 verparse-output-list))))))
+    (goto-line (string-to-number (nth 1 verparse-output-list)))
+    (word-search-forward verparse-search-string)
+    (backward-word))))
 
 ; Run a signal trace
 (defun verparse-signal-trace ()
@@ -150,7 +152,10 @@
       (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
       (find-file (car verparse-output-list))
       (if (= (point) (point-min))
-      (goto-line (string-to-number (nth 1 verparse-output-list)))))))
+          (progn
+            (goto-line (string-to-number (nth 1 verparse-output-list)))
+            (word-search-forward verparse-search-string)
+            (backward-word))))))
 
 ; Run a define value search
 (defun verparse-define-search ()
@@ -196,7 +201,9 @@
     (progn
       (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
       (find-file (car verparse-output-list))
-      (goto-line (string-to-number (nth 1 verparse-output-list))))))
+      (goto-line (string-to-number (nth 1 verparse-output-list)))
+      (word-search-forward verparse-search-string)
+      (backward-word))))
 
 (defun verparse-rebuild-netlist ()
   "Send the 'refresh' command to the verparse_server to rebuild the netlist object
