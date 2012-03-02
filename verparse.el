@@ -100,9 +100,7 @@
   (progn
     (setq verparse-output-list (split-string verparse-output-string "[ \n]+" t))
     (find-file (car verparse-output-list))
-    (goto-line (string-to-number (nth 1 verparse-output-list)))
-    (word-search-forward verparse-search-string)
-    (backward-word))))
+    (goto-line (string-to-number (nth 1 verparse-output-list))))))
 
 ; Run a signal trace
 (defun verparse-signal-trace ()
