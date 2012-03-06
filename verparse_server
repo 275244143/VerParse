@@ -559,7 +559,7 @@ sub parseModuleForNet {
                 print "Found definition of $netName in file ", $nl->resolve_filename($module->name), " on line ", $pp->lineno(), "\n" if $Debug;
                 my $returnFile = $nl->resolve_filename($module->name);
                 my $returnLine = $pp->lineno();
-                my @returnData = ($returnFile, $returnLine);
+                my @returnData = ($returnFile, $returnLine, $netName);
                 return @returnData;
             }
         }
