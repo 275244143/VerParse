@@ -280,6 +280,10 @@ sent. Also, if the buffer is killed."
   (local-set-key (kbd "<return>") 'verparse-module-search-no-prompt)
   (local-set-key "\C-c\C-m" 'verparse-module-search-no-prompt)
   (local-set-key "\C-c\C-w" 'verparse-toggle-module-list)
+  (local-set-key (kbd "n") 'verparse-module-list-next)
+  (local-set-key (kbd "p") 'verparse-module-list-prev)
+  (local-set-key "\C-n" 'verparse-module-list-next)
+  (local-set-key "\C-p" 'verparse-module-list-prev)
   (local-set-key [mouse-1] 'verparse-module-mouse-open)
 
   ; Set the mouse-face to highlight on all modules
