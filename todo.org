@@ -1,0 +1,73 @@
+This file is written in Emacs Org-Mode for convenience of editting. Please
+keep the format if modifying
+
+* Major Features to be Implemented
+
+** Load tracing functionality
+   - Bound to the 'C-c C-l' key sequence
+   - If load goes to only one location, move point there
+   - If load goes to several locations create a temporary buffer
+     called *verparse trace report* displaying the module and line
+     number of where the signals go. Something like this:
+     | ========================================================== |
+     | *verparse trace report*                                    |
+     | ========================================================== |
+     | Signal: clk_in                                             |
+     |                                                            |
+     |  * sub_sub_a : 13                                          |
+     |  * sub_sub_a : 29                                          |
+     |  * sub_a <-- sub_sub_a : 26                                |
+     |  * top <-- sub_a : 54                                      |
+     |  |\                                                        |
+     |  | |\                                                      |
+     |  | | * top --> sub_d : 45                                  |
+     |  | | * sub_d : 28                                          |
+     |  | * top --> sub_b : 70                                    |
+     |  | * sub_b : 25                                            |
+     |  | * sub_b : 30                                            |
+     |  | * sub_b : 32                                            |
+     |  * top --> sub_c : 80                                      |
+     |  * sub_c : 29                                              |
+     |  * sub_c --> sub_sub_c : 13                                |
+     | ========================================================== |
+
+     - The output from the verparse_server will have a format like this:
+       file_containing_module column file_line_number
+       So the above example would output like this:
+       sub_sub_a.v 1 13 sub_sub_a.v 1 29 sub_a.v 1 26 top.v 1 54 \
+       top.v 3 45 sub_d.v 3 28 top.v 2 70 sub_b.v 2 25 sub_b.v 2 30 \
+       sub_b.v 2 32 top.v 1 80 sub_c 1 29 sub_c 1 13
+
+     - The current pointer and window configuration will be saved
+     - The list will be organized by connection path relative to the current
+       location. So in the example above, the clk_in signal is defined
+       in the sub_sub_a module. At the top module, it goes into
+       the sub_b, sub_c, and sub_d modules.
+     - the '-->' or '<--' syntax represents a signal descending into
+       or rising up through module hierarchy, respectively.
+     - The window will be split horizontally with the trace
+       report buffer on the bottom. The top frame will open a buffer
+       of the file and line number of the currently selected
+       trace location.
+     - Standard movement keys will change the selection in the
+       trace report buffer, as will mouse 1 clicks
+     - Hitting the ENTER key on the selection will move
+       point to that location and will restore the previous
+       frame layout with the new buffer taking the last
+       current buffer.
+     - Hitting 'q' or 'C-g' while in the trace report buffer
+       will exit the trace and return point and the frame layout
+       to its state before the trace
+  
+
+** Remove the verparse script and write client communication in Emacs Lisp
+   - Simplify the script communication so there is only a client and a server
+
+** Change the way the *verparse module list* is generated
+   - Make the list collapsible
+     - Maybe use a list of lists to generate the hierarchy?
+   - Make navigation through the same level of hierarchy possible
+     - 'C-n' down in same level of hierarchy
+     - 'C-p' up in same level of hierarchy
+
+
