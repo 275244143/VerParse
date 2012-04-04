@@ -9,27 +9,27 @@ keep the format if modifying
    - If load goes to several locations create a temporary buffer
      called *verparse trace report* displaying the module and line
      number of where the signals go. Something like this:
-     \| ========================================================== |
-     \| *verparse trace report*                                    |
-     \| ========================================================== |
-     \| Signal: clk_in                                             |
-     \|                                                            |
-     \|  * sub_sub_a : 13                                          |
-     \|  * sub_sub_a : 29                                          |
-     \|  * sub_a <-- sub_sub_a : 26                                |
-     \|  * top <-- sub_a : 54                                      |
-     \|  |\                                                        |
-     \|  | |\                                                      |
-     \|  | | * top --> sub_d : 45                                  |
-     \|  | | * sub_d : 28                                          |
-     \|  | * top --> sub_b : 70                                    |
-     \|  | * sub_b : 25                                            |
-     \|  | * sub_b : 30                                            |
-     \|  | * sub_b : 32                                            |
-     \|  * top --> sub_c : 80                                      |
-     \|  * sub_c : 29                                              |
-     \|  * sub_c --> sub_sub_c : 13                                |
-     \| ========================================================== |
+     \| ========================================================== |\n
+     \| *verparse trace report*                                    |\n
+     \| ========================================================== |\n
+     \| Signal: clk_in                                             |\n
+     \|                                                            |\n
+     \|  * sub_sub_a : 13                                          |\n
+     \|  * sub_sub_a : 29                                          |\n
+     \|  * sub_a <-- sub_sub_a : 26                                |\n
+     \|  * top <-- sub_a : 54                                      |\n
+     \|  |\                                                        |\n
+     \|  | |\                                                      |\n
+     \|  | | * top --> sub_d : 45                                  |\n
+     \|  | | * sub_d : 28                                          |\n
+     \|  | * top --> sub_b : 70                                    |\n
+     \|  | * sub_b : 25                                            |\n
+     \|  | * sub_b : 30                                            |\n
+     \|  | * sub_b : 32                                            |\n
+     \|  * top --> sub_c : 80                                      |\n
+     \|  * sub_c : 29                                              |\n
+     \|  * sub_c --> sub_sub_c : 13                                |\n
+     \| ========================================================== |\n
 
      - The output from the verparse_server will have a format like this:
        file_containing_module column file_line_number
