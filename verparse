@@ -169,6 +169,10 @@ Determines which command should be sent to the server. Valid options are:
     * module_list --> outputs each module, the file it is instantiated in, and the
                       line number the instantiation occurs. Used to build a clickable
                       list in Emacs for quick searching.
+    * up          --> goes up one level of hierarchy and lists the line number and
+                      file in which the current module is instantiated. Note that
+                      this only works if the module is instantiated once, multiple
+                      instantiations of the same module is not yet supported.
 
 =item -s I<search_string>
 
